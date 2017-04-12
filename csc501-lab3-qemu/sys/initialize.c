@@ -175,11 +175,11 @@ sysinit()
 	int status, frame_no;
 
 	//TODO: Initialize BSM mapping tables.
-	//status = init_bsm();
+	status = init_bsm();
 	if(status != OK)
 		kprintf("\nSomething is wrong in init_bs()\n");
 	
-	//status = init_frm();
+	status = init_frm();
 	if(status != OK)
 		kprintf("\nSomething is wrong in init_frm()\n");
 	

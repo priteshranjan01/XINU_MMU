@@ -13,6 +13,7 @@ SYSCALL init_frm()
   STATWORD ps;
   int i ;
   disable(ps);
+  kprintf("\n\n\nWhere is my Mind\n\n");
   for(i=0; i< 4; i++)
   {
 	  frm_tab[i].fr_status = FRM_MAPPED;
