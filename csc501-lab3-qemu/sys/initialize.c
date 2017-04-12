@@ -36,7 +36,7 @@ struct	mblock	memlist;	/* list of free memory blocks		*/
 
 unsigned long gpt_base_address[4];
 bs_map_t bsm_tab[BS_COUNT];  /* bsm_map_t in paging.h */
-fr_map_t frm_tab[1024];   /* Called inverted page table in PA3*/
+fr_map_t frm_tab[ENTRIES_PER_PAGE];   /* Called inverted page table in PA3*/
 
 #ifdef	Ntty
 struct  tty     tty[Ntty];	/* SLU buffers and mode control		*/
@@ -172,37 +172,43 @@ sysinit()
 		mptr->mlen = (int) truncew((unsigned)maxaddr - (int)&end -
 			NULLSTK);
 	}
-	int status;
-	status = init_bsm();
+	int status, frame_no;
+
+	//TODO: Initialize BSM mapping tables.
+	//status = init_bsm();
 	if(status != OK)
 		kprintf("\nSomething is wrong in init_bs()\n");
-
-	status = init_frm();
+	
+	//status = init_frm();
 	if(status != OK)
 		kprintf("\nSomething is wrong in init_frm()\n");
 	
 	//TODO: Initialize 4 page tables mapping the first 16 MB space: DONE
 	status = initialize_4_global_page_tables(1024);
 	if (debug) kprintf("\nGPT initialized status = %d",status);
+	
 	//TODO: Initialize the page directory entry: DONE
 	pd_t * addr;
-	addr = initialize_page_directory(1028);
+	status = get_frame_for_PD(NULLPROC, &frame_no);
+	if(debug) kprintf("\nFrame number for NULLPROC = %d", frame_no);
+	addr = initialize_page_directory(frame_no);  // Frame#1028 holds the NULL process's PD
 	if (debug) kprintf("\nNull process PD initialized status = %d, adddress= 0x%x",status, addr);
+	
+	//TODO: update the CR3 register: DONE
 	unsigned long temp_addr = addr;
 	temp_addr = (temp_addr >> 12 ) << 12;
 	write_cr3(temp_addr);
+	
 	//kprintf("\nread_cr3() = 0x%x", read_cr3());
-	//TODO: update pdbr in pptr for Null process: DONE
-	//TODO: update the CR3 register: DONE
 	//TODO: set page fault handler routine: DONE
 	set_evec(14, (unsigned long)pfintr);
+
 	// TODO: modify create so that new processes have correct pdbr in proctab.
 	//TODO: Load pdbr from proctab in resched.c  DONE
 	//TODO: Enable paging
- 	proctab[48].pdbr = temp_addr;
-   proctab[49].pdbr = temp_addr;
+	
+	proctab[49].pdbr = temp_addr;
 	enable_paging();
- //enable_paging();
 	for (i=0 ; i<NPROC ; i++)	/* initialize process table */
 		proctab[i].pstate = PRFREE;
 
@@ -239,6 +245,8 @@ sysinit()
 	pptr->pargs = 0;
 	pptr->pprio = 0;
 	currpid = NULLPROC;
+	//TODO: update pdbr in pptr for Null process: DONE
+	
 	pptr->pdbr = temp_addr;
 	if (debug) kprintf("\nNull process' pdbr = %x",pptr->pdbr);
 

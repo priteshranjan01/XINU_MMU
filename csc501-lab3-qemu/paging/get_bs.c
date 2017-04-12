@@ -11,4 +11,3 @@ int get_bs(bsd_t bs_id, unsigned int npages) {
 
 }
 
-

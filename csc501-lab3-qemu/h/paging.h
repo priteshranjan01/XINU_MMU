@@ -37,8 +37,12 @@ typedef struct {
   unsigned int pd_global: 1;		/* global (ignored)		*/
   unsigned int pd_avail : 3;		/* for programmer's use		*/
   unsigned int pd_base	: 20;		/* location of page table?	*/
-} pd_t;
+} pd_struct;
 
+typedef union {
+	pd_struct pde;			/* page directory entry */
+	unsigned long dummy;	/* 32 bit value for one line initialization */
+}pd_t;
 /* Structure for a page table entry */
 
 typedef struct {
@@ -54,7 +58,12 @@ typedef struct {
   unsigned int pt_global: 1;		/* should be zero in 586	*/
   unsigned int pt_avail : 3;		/* for programmer's use		*/
   unsigned int pt_base	: 20;		/* location of page?		*/
-} pt_t;
+} pt_struct;
+
+typedef union {
+	pt_struct pte;		/* page table entry */
+	unsigned long dummy;  /* 32 bit value for one line initialization */
+}pt_t;
 
 typedef struct{
   unsigned int pg_offset : 12;		/* page offset			*/
@@ -83,7 +92,8 @@ typedef struct{
   int fr_vpno;				/* corresponding virtual page no*/
   int fr_refcnt;			/* reference count		*/
   int fr_type;				/* FR_DIR, FR_TBL, FR_PAGE	*/
-  int fr_dirty;
+  int fr_dirty;				/* If the frame in the memory has been written into */
+  int next;					/* For use in SC queue */
 }fr_map_t;
 
 extern bs_map_t bsm_tab[];
@@ -107,11 +117,18 @@ SYSCALL read_bs(char *, bsd_t, int);
 SYSCALL write_bs(char *, bsd_t, int);
 void pfintr();
 
+#define GET_PD_OFFSET(vaddr) ((vaddr >>22) << 2)
+#define GET_PT_OFFSET(vaddr) (((vaddr << 10) >> 22) << 2)
+#define GET_PG_OFFSET(vaddr) ((vaddr << 20) >> 20)
+
 #define NBPG		4096	/* number of bytes per page	*/
 #define ENTRIES_PER_PAGE 		1024
-#define FRAME0		1030	/* zero-th frame. I have reserved frames [1024 - 1028] for the four
-						global page tables and Null and Main process's page directory*/
-#define NFRAMES 	1018	/* number of available frames. Never set this to more than 1018.*/
+#define FRAME0		1078	/* zero-th frame. I have reserved frames [1024 - 1079] for the four
+						global page tables[1024-1027], Null process's page directory[1028] 
+						and the rest [1029-1078] for remaining process' page directories
+						This is acceptable since the PA3 description says that the PD's shall
+						not be swapped out.*/
+#define NFRAMES 	970	/* number of available frames. NEVER SET THIS TO MORE THAN 970.*/
 
 #define BSM_UNMAPPED	0
 #define BSM_MAPPED	1
