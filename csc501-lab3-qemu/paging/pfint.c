@@ -13,7 +13,7 @@ SYSCALL pfint()
 {
 
   kprintf("To be implemented!\n");
+  kprintf("\nWell I tried");
   return OK;
 }
-
 

@@ -10,7 +10,21 @@
  */
 SYSCALL init_frm()
 {
-  kprintf("To be implemented!\n");
+  //kprintf("To be implemented!\n");
+  STATWORD ps;
+  int i ;
+  disable(ps);
+  for (i=0; i < NFRAMES; i++)
+  {
+	  frm_tab[i].fr_status = FRM_UNMAPPED;
+	  frm_tab[i].fr_pid = -1;
+	  frm_tab[i].fr_vpno = -1;
+	  frm_tab[i].fr_refcnt = -1;
+	  frm_tab[i].fr_type = FR_PAGE;
+	  frm_tab[i].fr_dirty = FALSE;
+	  //TODO: Add lines fr_map_t structure is changed
+  }
+  restore(ps);
   return OK;
 }
 
@@ -34,6 +48,3 @@ SYSCALL free_frm(int i)
   kprintf("To be implemented!\n");
   return OK;
 }
-
-
-

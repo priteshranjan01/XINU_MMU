@@ -5,12 +5,31 @@
 #include <paging.h>
 #include <proc.h>
 
+
 /*-------------------------------------------------------------------------
  * init_bsm- initialize bsm_tab
  *-------------------------------------------------------------------------
  */
 SYSCALL init_bsm()
 {
+	int i=0, j=0;
+	STATWORD ps;
+	disable(ps);
+	//TODO: make changes according to the changes in the data structure
+	for (i=0; i < BS_COUNT ; i++)
+	{
+		bsm_tab[i].bs_status = BSM_UNMAPPED;
+		bsm_tab[i].bs_sem = -1;
+		bsm_tab[i].shared = TRUE;
+		for (j=0; j < 5; j++)
+		{
+			bsm_tab[i].pr_map[j].bs_pid = -1;
+			bsm_tab[i].pr_map[j].bs_vpno = -1;
+			bsm_tab[i].pr_map[j].bs_npages = -1;
+		}
+	}
+	restore(ps);
+	return OK;
 }
 
 /*-------------------------------------------------------------------------
@@ -19,6 +38,7 @@ SYSCALL init_bsm()
  */
 SYSCALL get_bsm(int* avail)
 {
+	
 }
 
 

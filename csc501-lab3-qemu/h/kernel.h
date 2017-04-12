@@ -65,6 +65,7 @@ typedef	int	REG;		/* sizeof machine register		*/
 #define MAXLONG		0x7fffffff	
 #define MINLONG		0x80000000
 
+#define BS_COUNT 8
 typedef short	STATWORD[1];	/* machine status for disable/restore	*/
 				/* by declaring it to be an array, the	*/
 				/* name provides an address so forgotten*/
@@ -77,6 +78,7 @@ typedef short	STATWORD[1];	/* machine status for disable/restore	*/
 
 extern	int	rdyhead, rdytail;
 extern	int	preempt;
+extern int debug;
 
 /* Include types and configuration information */
 

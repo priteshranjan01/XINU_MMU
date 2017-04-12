@@ -43,6 +43,17 @@
 
 #define	isbadpid(x)	(x<=0 || x>=NPROC)
 
+/* In case one process has mapped multiple Backing stores
+this will store that information */
+
+typedef struct {
+	int bs_status;
+	int bs_vpno;
+	int bs_npages;
+	int shared;
+}_bs_map_t;
+
+
 /* process table entry */
 
 struct	pentry	{
@@ -72,11 +83,13 @@ struct	pentry	{
         int     prate;                  /* rate value in psp            */
 
 /* for demand paging */
+
         unsigned long pdbr;             /* PDBR                         */
         int     store;                  /* backing store for vheap      */
         int     vhpno;                  /* starting pageno for vheap    */
         int     vhpnpages;              /* vheap size                   */
         struct mblock *vmemlist;        /* vheap list              	*/
+		_bs_map_t bs_map[BS_COUNT];  /*List of processes this process has mapped*/
 };
 
 

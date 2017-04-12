@@ -83,6 +83,10 @@ int	resched()
 	PrintSaved(nptr);
 #endif
 	
+	write_cr3(nptr->pdbr);
+	/* We need to write the CR3 register before the context switch, so that the 
+	memory location of the activation record of the next process can be mapped and loaded 
+	correctly */
 	ctxsw(&optr->pesp, optr->pirmask, &nptr->pesp, nptr->pirmask);
 
 #ifdef	DEBUG
