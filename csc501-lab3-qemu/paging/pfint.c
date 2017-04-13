@@ -2,6 +2,7 @@
 
 #include <conf.h>
 #include <kernel.h>
+#include <proc.h>
 #include <paging.h>
 
 
@@ -37,7 +38,7 @@ SYSCALL pfint()
 
 SYSCALL dummy_pfint(unsigned long cr2)
 {
-	unsigned long cr2 = cr2;
+//	unsigned long cr2 = cr2;
 	unsigned long pdbr;
 	unsigned int pd_off, pt_off, pg_off;
 	int frame_no, i;
@@ -47,7 +48,7 @@ SYSCALL dummy_pfint(unsigned long cr2)
 	pdbr = read_cr3();
 	pdbr = (pdbr >> 12) << 12;
 	if(debug) kprintf("\npdbr = 0x%x ,cr2 = 0x%x , pd_off 0x%x pt_off 0x%x pg_off 0x%x",pdbr,cr2,pd_off,pt_off,pg_off);
-	pd_t * pde = (pd_t*)(pdbr + pd_offset);
+	pd_t * pde = (pd_t*)(pdbr + pd_off);
 	kprintf("\npde.pd_base = 0x%x",(*pde).pde.pd_base);
 	
 	if ((*pde).pde.pd_pres == 0)
@@ -78,5 +79,5 @@ SYSCALL dummy_pfint(unsigned long cr2)
 	(*pte).pte.pt_pres = 1;
 	(*pte).pte.pt_write = 1;
 	(*pte).pte.pt_base = frame_no;
-	if(debug) kprintf("\n pte value = 0x%x", (*pte).pte.dummy);
+	if(debug) kprintf("\n pte value = 0x%x", (*pte).dummy);
 }

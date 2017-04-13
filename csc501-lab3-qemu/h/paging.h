@@ -21,7 +21,7 @@ If CR0.PG=1 and CR4.PAE=0 then 32 bit paging. THIS IS WHAT we are studying.
 #ifndef _PAGING_H_
 #define _PAGING_H_
 typedef unsigned int	 bsd_t;
-
+#define MAX_PROCESS_PER_BS 5
 /* Structure for a page directory entry */
 
 typedef struct {
@@ -133,10 +133,10 @@ void pfintr();
 
 #define BSM_UNMAPPED	0
 #define BSM_MAPPED	1
-#define MAX_PROCESS_PER_BS 5
+
 SYSCALL init_bsm();
-SYSCALL get_bsm(int* bsm_id);
-int is_bsm_available(int bsm_id, int pid);
+SYSCALL get_bsm(bsd_t* bsm_id);
+int is_bsm_available(bsd_t bsm_id, int pid);
 SYSCALL dummy_pfint(unsigned long cr2);
 
 #define FRM_UNMAPPED	0
