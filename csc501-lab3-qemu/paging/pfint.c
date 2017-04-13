@@ -52,6 +52,7 @@ SYSCALL dummy_pfint(unsigned long cr2)
 	pd_off = GET_PD_OFFSET(cr2);
 	pt_off = GET_PT_OFFSET(cr2);
 	pg_off = GET_PG_OFFSET(cr2);
+	unsigned int vpno = cr2 >> 12;
 	pdbr = read_cr3();
 	pdbr = (pdbr >> 12) << 12;
 	if(debug) kprintf("\npdbr = 0x%x ,cr2 = 0x%x , pd_off 0x%x pt_off 0x%x pg_off 0x%x",pdbr,cr2,pd_off,pt_off,pg_off);
@@ -72,6 +73,8 @@ SYSCALL dummy_pfint(unsigned long cr2)
 
 		for(i=0; i<ENTRIES_PER_PAGE; i++)
 			pt_base_address[i].dummy = 0;
+		// Update inverted page table entry.
+		update_inverted_pt_entry(frame_no, FRM_MAPPED, frame_no, FR_TBL);
 	}
 	int store, pageth;
 	bsm_lookup(currpid, cr2, &store, &pageth);
@@ -85,5 +88,7 @@ SYSCALL dummy_pfint(unsigned long cr2)
 	(*pte).pte.pt_pres = 1;
 	(*pte).pte.pt_write = 1;
 	(*pte).pte.pt_base = frame_no;
+	// Update inverted page table entry 
+	update_inverted_pt_entry(frame_no, FRM_MAPPED, vpno, FR_PAGE);
 	if(debug) kprintf("\n pte value = 0x%x", (*pte).dummy);
 }

@@ -93,3 +93,18 @@ pd_t * initialize_page_directory(int frame_no)
 	}
 	return addr;
 }
+
+SYSCALL update_inverted_pt_entry(int frame_no, int status, int vpno, int type)
+{
+	if (frame_no < ENTRIES_PER_PAGE || frame_no >= ENTRIES_PER_PAGE*2)
+		return SYSERR;
+	frame_no -= ENTRIES_PER_PAGE;
+	frm_tab[frame_no].fr_status = status;
+	frm_tab[frame_no].fr_pid = currpid;
+	frm_tab[frame_no].fr_vpno = vpno;
+	frm_tab[frame_no].fr_refcnt++;
+	frm_tab[frame_no].fr_type = type;
+	frm_tab[frame_no].fr_dirty = 0;
+	frm_tab[frame_no].fr_next = frame_no;
+	if(debug) kprintf("\nUPDATED Inv PT entry # %d, status= %d, vpno= %d, type = %d",frame_no, status, vpno, type);
+}
