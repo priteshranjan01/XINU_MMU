@@ -33,7 +33,12 @@ SYSCALL pfint()
   Mark the PTE as present.
   */
   kprintf("\nPage fault error code 0x%x",pferrcode);
-  dummy_pfint(read_cr2());
+  if (GET_BIT(pferrcode, 0) == 0)
+	  dummy_pfint(read_cr2());
+  else
+  {
+	  kprintf("\n The process ought be killed. It raised a page-level protection violation");
+  }
   restore(ps);
   return OK;
 }
@@ -67,7 +72,6 @@ SYSCALL dummy_pfint(unsigned long cr2)
 
 		for(i=0; i<ENTRIES_PER_PAGE; i++)
 			pt_base_address[i].dummy = 0;
-		
 	}
 	int store, pageth;
 	bsm_lookup(currpid, cr2, &store, &pageth);
