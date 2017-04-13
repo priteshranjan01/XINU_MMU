@@ -32,6 +32,7 @@ SYSCALL pfint()
   Update the relevant entry in the corresponding PT 
   Mark the PTE as present.
   */
+  dummy_pfint(read_cr2());
   restore(ps);
   return OK;
 }

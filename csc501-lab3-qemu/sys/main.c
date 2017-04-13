@@ -26,7 +26,16 @@
 		sleep(3);
 		return;
 	}
- dummy_pfint(0xa0000000);
+	addr = (char*) PROC1_VADDR;
+	for (i = 0; i < 1; i++) {
+		*(addr + i * NBPG) = 'A' + i;
+	}
+
+	sleep(6);
+
+	for (i = 0; i < 1; i++) {
+		kprintf("0x%08x: %c\n", addr + i * NBPG, *(addr + i * NBPG));
+	}
  }
  
 int main()
