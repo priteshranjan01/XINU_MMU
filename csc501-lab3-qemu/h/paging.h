@@ -125,12 +125,11 @@ void pfintr();
 
 #define NBPG		4096	/* number of bytes per page	*/
 #define ENTRIES_PER_PAGE 		1024
-#define FRAME0		1078	/* zero-th frame. I have reserved frames [1024 - 1079] for the four
-						global page tables[1024-1027], Null process's page directory[1028] 
-						and the rest [1029-1078] for remaining process' page directories
-						This is acceptable since the PA3 description says that the PD's shall
-						not be swapped out.*/
-#define NFRAMES 	970	/* number of available frames. NEVER SET THIS TO MORE THAN 970.*/
+#define FRAME0		1536	/* zero-th frame. I have reserved frames [1024 - 1535] for Page Directories
+						and page table entries. The four global page tables[1024-1027], Null process's 
+						page directory[1028] and the rest [1029-1078] for remaining (49) process' page directories
+						Frame 1078-1535 is for other page tables.*/
+#define NFRAMES 	512	/* number of available frames. NEVER SET THIS TO MORE THAN 512.*/
 
 #define BSM_UNMAPPED	0
 #define BSM_MAPPED	1

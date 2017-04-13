@@ -15,7 +15,7 @@ SYSCALL init_frm()
   disable(ps);
   kprintf("\n\n\nWhere is my Mind\n\n");
   for(i=0; i< 4; i++)
-  {
+  {		// 4 Frames for the global page tables.
 	  frm_tab[i].fr_status = FRM_MAPPED;
 	  frm_tab[i].fr_pid = 0;
 	  frm_tab[i].fr_vpno = ENTRIES_PER_PAGE + i;
@@ -24,8 +24,8 @@ SYSCALL init_frm()
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;
   }
-  for(i=4; i< 54; i++)
-  {
+  for(i=4; i< NPROC; i++)
+  {		// Next NPROC frames for PD's of processes.
 	  frm_tab[i].fr_status = FRM_MAPPED;
 	  frm_tab[i].fr_pid = i-4;
 	  frm_tab[i].fr_vpno = ENTRIES_PER_PAGE + i;
@@ -34,17 +34,27 @@ SYSCALL init_frm()
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;
   }
-  for (i=54; i < 54+NFRAMES; i++)
-  {
+  for (i=NPROC; i < FRAME0-ENTRIES_PER_PAGE ; i++)
+  {	// Frames for page tables.
+	  frm_tab[i].fr_status = FRM_UNMAPPED;
+	  frm_tab[i].fr_pid = -1;
+	  frm_tab[i].fr_vpno = -1;
+	  frm_tab[i].fr_refcnt = -1;
+	  frm_tab[i].fr_type = FR_TBL;
+	  frm_tab[i].fr_dirty = FALSE;
+	  frm_tab[i].next = -1;
+	  //TODO: Add lines fr_map_t structure is changed
+  }
+  for(; i< FRAME0 + NFRAMES - ENTRIES_PER_PAGE; i++)
+  {		// Available frames for user data.
 	  frm_tab[i].fr_status = FRM_UNMAPPED;
 	  frm_tab[i].fr_pid = -1;
 	  frm_tab[i].fr_vpno = -1;
 	  frm_tab[i].fr_refcnt = -1;
 	  frm_tab[i].fr_type = FR_PAGE;
 	  frm_tab[i].fr_dirty = FALSE;
-	  frm_tab[i].next = -1;
-	  //TODO: Add lines fr_map_t structure is changed
-  }
+	  frm_tab[i].next = -1;  
+	}
   restore(ps);
   return OK;
 }
