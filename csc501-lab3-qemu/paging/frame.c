@@ -67,22 +67,24 @@ SYSCALL get_frame_for_PD(int pid, int * frame_number)
 	return OK;
 }
 
-SYSCALL get_frm(int* avail)
+SYSCALL get_frm(int* frame_number)
 {
 	/* Will give a value in between 1030 and 2047, both inclusive */
-  kprintf("To be implemented!\n");
+  //kprintf("To be implemented!\n");
   // First look for an unmapped frame.
   int i= FRAME0 - ENTRIES_PER_PAGE;
-  for(; i < NFRAMES; i++)
+  
+  for(; i <  FRAME0 - ENTRIES_PER_PAGE + NFRAMES; i++)
   {
 	if (frm_tab[i].fr_status == FRM_UNMAPPED)
 	{
 		frm_tab[i].fr_status = FRM_MAPPED;
-		*avail = i+1024;
+		*frame_number = i+ ENTRIES_PER_PAGE;
 		return OK;
 	}
   }
-  return OK;
+  printf("\n\nCouldn't find an unmapped frame\n\n");
+  return SYSERR;
 }
 
 /*-------------------------------------------------------------------------

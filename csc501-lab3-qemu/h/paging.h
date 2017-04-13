@@ -74,13 +74,14 @@ typedef struct{
 typedef struct{
 	int bs_pid;				/* process id using this slot   */
 	int bs_vpno;			/* starting virtual page number */
-	int bs_npages;			/* number of pages in the store */
-}_map_;
+}map_struct;
+
 
 typedef struct{
   int bs_status;			/* MAPPED or UNMAPPED		*/
-  _map_ pr_map[5];	/* In case a BS is mapped by multiple processes.
-				Note: By design simultaneously only 5 processes can map to one BS*/
+  map_struct pr_map[MAX_PROCESS_PER_BS];	/* In case a BS is mapped by multiple processes.
+				Note: By design simultaneously only MAX_PROCESS_PER_BS processes can map to one BS*/
+  int bs_npages;			/* number of pages in the store */
   int bs_sem;				/* semaphore mechanism ?	*/
   int shared;				/* whether this is shared by other processes */
 } bs_map_t;
@@ -132,6 +133,11 @@ void pfintr();
 
 #define BSM_UNMAPPED	0
 #define BSM_MAPPED	1
+#define MAX_PROCESS_PER_BS 5
+SYSCALL init_bsm();
+SYSCALL get_bsm(int* bsm_id);
+int is_bsm_available(int bsm_id, int pid);
+SYSCALL dummy_pfint(unsigned long cr2);
 
 #define FRM_UNMAPPED	0
 #define FRM_MAPPED	1

@@ -45,7 +45,6 @@ void convert_vaddr_to_paddr(unsigned long pdbr, unsigned long vaddr)
 	//kprintf("\n\n\npdbr = 0x%x ",pdbr);
 	pdbr = (pdbr >> 12) << 12;
 	//kprintf("\npdbr = 0x%x ",pdbr);
-	unsigned long temp;
 	unsigned int pd_offset, pt_offset, pg_offset;
 	pd_offset = GET_PD_OFFSET(vaddr);
 	pt_offset = GET_PT_OFFSET(vaddr);
