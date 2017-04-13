@@ -67,6 +67,7 @@ SYSCALL create(procaddr,ssize,priority,name,nargs,args)
 	pptr->pnxtkin = BADPID;
 	pptr->pdevs[0] = pptr->pdevs[1] = pptr->ppagedev = BADDEV;
 
+	/* Create a page directory for this process and update pdbr value */
 	int frame_no, status;
 	pd_t * addr;
 	status = get_frame_for_PD(pid, &frame_no);
@@ -76,6 +77,8 @@ SYSCALL create(procaddr,ssize,priority,name,nargs,args)
 
 	pptr->pdbr = addr;
 	pptr->pdbr = ((pptr->pdbr)>>12)<<12;
+	
+	/* Business as usual */
 	
 		/* Bottom of stack */
 	*saddr = MAGIC;

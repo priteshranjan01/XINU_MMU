@@ -203,11 +203,10 @@ sysinit()
 	//TODO: set page fault handler routine: DONE
 	set_evec(14, (unsigned long)pfintr);
 
-	// TODO: modify create so that new processes have correct pdbr in proctab.
+	// TODO: modify create so that new processes have correct pdbr in proctab. DONE
 	//TODO: Load pdbr from proctab in resched.c  DONE
 	//TODO: Enable paging
 	
-	//proctab[49].pdbr = temp_addr;
 	enable_paging();
 	for (i=0 ; i<NPROC ; i++)	/* initialize process table */
 		proctab[i].pstate = PRFREE;
