@@ -32,6 +32,7 @@ SYSCALL pfint()
   Update the relevant entry in the corresponding PT 
   Mark the PTE as present.
   */
+  kprintf("\nPage fault error code 0x%x",pferrcode);
   dummy_pfint(read_cr2());
   restore(ps);
   return OK;
