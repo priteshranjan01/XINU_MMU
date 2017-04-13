@@ -207,7 +207,7 @@ sysinit()
 	//TODO: Load pdbr from proctab in resched.c  DONE
 	//TODO: Enable paging
 	
-	proctab[49].pdbr = temp_addr;
+	//proctab[49].pdbr = temp_addr;
 	enable_paging();
 	for (i=0 ; i<NPROC ; i++)	/* initialize process table */
 		proctab[i].pstate = PRFREE;

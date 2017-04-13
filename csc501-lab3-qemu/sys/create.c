@@ -67,6 +67,16 @@ SYSCALL create(procaddr,ssize,priority,name,nargs,args)
 	pptr->pnxtkin = BADPID;
 	pptr->pdevs[0] = pptr->pdevs[1] = pptr->ppagedev = BADDEV;
 
+	int frame_no, status;
+	pd_t * addr;
+	status = get_frame_for_PD(pid, &frame_no);
+	if (debug) kprintf("\nFrame # %d for PD of process ID = %d", frame_no, pid);
+	addr = initialize_page_directory(frame_no);
+	if (debug) kprintf("\nProcess PID %d , PD initialized status = %d, adddress= 0x%x",pid, status, addr);
+
+	pptr->pdbr = addr;
+	pptr->pdbr = ((pptr->pdbr)>>12)<<12;
+	
 		/* Bottom of stack */
 	*saddr = MAGIC;
 	savsp = (unsigned long)saddr;
