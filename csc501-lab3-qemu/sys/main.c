@@ -27,13 +27,13 @@
 		return;
 	}
 	addr = (char*) PROC1_VADDR;
-	for (i = 0; i < 1; i++) {
+	for (i = 0; i < 26; i++) {
 		*(addr + i * NBPG) = 'A' + i;
 	}
 
 	sleep(6);
 
-	for (i = 0; i < 1; i++) {
+	for (i = 0; i < 26; i++) {
 		kprintf("0x%08x: %c\n", addr + i * NBPG, *(addr + i * NBPG));
 	}
  }
@@ -49,6 +49,6 @@ int main()
 	kprintf("\n1: shared memory\n");
 	pid1 = create(proc1_test1, 2000, 25, "proc1_test1", 0, NULL);
 	resume(pid1);
-	sleep(4);
+	sleep(14);
         shutdown();
 }

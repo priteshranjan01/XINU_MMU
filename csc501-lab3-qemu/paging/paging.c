@@ -79,7 +79,7 @@ pd_t * initialize_page_directory(int frame_no)
 	//TODO: Update inverted page table entries.
 
 	// Write the first 4 entries to correct values.
-	if(debug) kprintf("\nNull process' first 5 entries in page directory");
+	if(debug) kprintf("\nfirst 5 entries in page directory");
 	for(i=0; i<4; i++)
 	{
 		addr[i].pde.pd_pres = 1;
