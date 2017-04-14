@@ -24,7 +24,7 @@ SYSCALL init_frm()
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;
   }
-  for(i=4; i< NPROC; i++)
+  for(i=4; i< 4+NPROC; i++)
   {		// Next NPROC frames for PD's of processes.
 	  frm_tab[i].fr_status = FRM_MAPPED;
 	  frm_tab[i].fr_pid = i-4;
@@ -34,7 +34,7 @@ SYSCALL init_frm()
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;
   }
-  for (i=NPROC; i < FRAME0-ENTRIES_PER_PAGE ; i++)
+  for (i=4+NPROC; i < FRAME0-ENTRIES_PER_PAGE ; i++)
   {	// Frames for page tables.
 	  frm_tab[i].fr_status = FRM_UNMAPPED;
 	  frm_tab[i].fr_pid = -1;
@@ -66,10 +66,11 @@ SYSCALL init_frm()
  
 SYSCALL get_frame_for_PD(int pid, int * frame_number)
 {
-	/* Will return a value between 1028 to 1077 */
+	/* Will return a value between 1028 to 1077 both inclusive*/
 	if ((frm_tab[pid+4].fr_pid != pid) && frm_tab[pid+4].fr_type != FR_DIR)
 	{
 		kprintf("\nThe inverted page table has not been initialized properly");
+		kill(currpid);
 		return SYSERR;
 	}
 	*frame_number = frm_tab[pid+4].fr_vpno;
@@ -77,14 +78,29 @@ SYSCALL get_frame_for_PD(int pid, int * frame_number)
 	return OK;
 }
 
+SYSCALL get_frame_for_PT(int pid, int *frame_number)
+{
+	int i;
+	for (i=4+NPROC; i < FRAME0-ENTRIES_PER_PAGE ; i++)
+	{
+		if(frm_tab[i].fr_status == FRM_UNMAPPED)
+		{
+			frm_tab[i].fr_pid = currpid;
+			*frame_number = i;
+			return OK;
+		}
+	}
+	kprintf("\nRan out of frames for page tables");
+	return SYSERR;
+}
 SYSCALL get_frm(int* frame_number)
 {
 	/* Will give a value in between 1030 and 2047, both inclusive */
   //kprintf("To be implemented!\n");
   // First look for an unmapped frame.
-  int i= FRAME0 - ENTRIES_PER_PAGE;
+  int i;
   
-  for(; i <  FRAME0 - ENTRIES_PER_PAGE + NFRAMES; i++)
+  for(i= FRAME0 - ENTRIES_PER_PAGE; i <  FRAME0 - ENTRIES_PER_PAGE + NFRAMES; i++)
   {
 	if (frm_tab[i].fr_status == FRM_UNMAPPED)
 	{

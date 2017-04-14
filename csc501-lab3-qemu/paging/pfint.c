@@ -60,8 +60,11 @@ SYSCALL dummy_pfint(unsigned long cr2)
 	
 	if ((*pde).pde.pd_pres == 0)
 	{	// Page table itself is not present.
-		if (get_frm(&frame_no) != OK)
+		if (get_frame_for_PT(&frame_no) != OK)
+		{
 			kprintf("\nHouston, we got a problem");
+			kill(currpid);
+		}
 		if(debug) kprintf("\nNew Page table is to be created in frame # %d",frame_no);
 		(*pde).dummy = 0;  // First clear to remove any garbage.
 		(*pde).pde.pd_base = frame_no;
@@ -77,7 +80,10 @@ SYSCALL dummy_pfint(unsigned long cr2)
 	bsm_lookup(currpid, cr2, &store, &pageth);
 	if(debug) kprintf("\ncurrpid %d, store %d, pageth %d",currpid, store, pageth);
 	if (get_frm(&frame_no) != OK)
+	{
 		kprintf("\nHouston, we got another problem");
+		kill(currpid);
+	}
 	if(debug) kprintf("\nNew Page is created in frame # %d",frame_no);	
 	read_bs((char *)(frame_no<<12), store, pageth);
 	pt_t * pte = (pt_t*)((((*pde).pde.pd_base) << 12) + pt_off) ;
