@@ -22,6 +22,9 @@ If CR0.PG=1 and CR4.PAE=0 then 32 bit paging. THIS IS WHAT we are studying.
 #define _PAGING_H_
 typedef unsigned int	 bsd_t;
 #define MAX_PROCESS_PER_BS 5
+extern int pr_debug;
+extern int page_replace_policy;
+
 extern unsigned long pferrcode;
 /* Structure for a page directory entry */
 
@@ -100,6 +103,7 @@ typedef struct{
 
 extern bs_map_t bsm_tab[];
 extern fr_map_t frm_tab[];
+extern int sc_head, sc_tail;  // Second Change PR policy queue head and tail
 extern unsigned long gpt_base_address[] ;  // Keeps the base address of 4 global page tables.
 // Useful while initializing a process' page directory.
 
