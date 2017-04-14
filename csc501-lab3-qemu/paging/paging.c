@@ -105,6 +105,6 @@ SYSCALL update_inverted_pt_entry(int frame_no, int status, int vpno, int type)
 	frm_tab[frame_no].fr_refcnt++;
 	frm_tab[frame_no].fr_type = type;
 	frm_tab[frame_no].fr_dirty = 0;
-	frm_tab[frame_no].fr_next = frame_no;
+	frm_tab[frame_no].next = frame_no;
 	if(debug) kprintf("\nUPDATED Inv PT entry # %d, status= %d, vpno= %d, type = %d",frame_no, status, vpno, type);
 }
