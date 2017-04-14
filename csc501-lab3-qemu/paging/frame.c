@@ -78,7 +78,7 @@ SYSCALL get_frame_for_PD(int pid, int * frame_number)
 	return OK;
 }
 
-SYSCALL get_frame_for_PT(int pid, int *frame_number)
+SYSCALL get_frame_for_PT(int *frame_number)
 {
 	int i;
 	for (i=4+NPROC; i < FRAME0-ENTRIES_PER_PAGE ; i++)
