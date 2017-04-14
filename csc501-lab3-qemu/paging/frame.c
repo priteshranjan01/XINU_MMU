@@ -86,7 +86,7 @@ SYSCALL get_frame_for_PT(int *frame_number)
 		if(frm_tab[i].fr_status == FRM_UNMAPPED)
 		{
 			frm_tab[i].fr_pid = currpid;
-			*frame_number = i;
+			*frame_number = i+ ENTRIES_PER_PAGE;
 			return OK;
 		}
 	}
