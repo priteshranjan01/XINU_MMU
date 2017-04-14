@@ -133,7 +133,7 @@ void pfintr();
 						and page table entries. The four global page tables[1024-1027], Null process's 
 						page directory[1028] and the rest [1029-1078] for remaining (49) process' page directories
 						Frame 1078-1535 is for other page tables.*/
-#define NFRAMES 	512	/* number of available frames. NEVER SET THIS TO MORE THAN 512.*/
+#define NFRAMES 	5	/* number of available frames. NEVER SET THIS TO MORE THAN 512.*/
 
 #define BSM_UNMAPPED	0
 #define BSM_MAPPED	1

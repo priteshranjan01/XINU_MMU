@@ -108,9 +108,9 @@ int insert_into_sc_queue(int frame_no)
 	}
 	else
 	{
-		frm_tab[frame_no].next = head;
+		frm_tab[frame_no].next = sc_head;
 		frm_tab[sc_tail].next = frame_no;
-		tail = frame_no;
+		sc_tail = frame_no;
 	}
 	return OK;
 }
@@ -159,9 +159,10 @@ int get_victim_frame(int * frame_number)
 				// Write to backing store.
 				bsm_lookup(currpid, vpno<<12, &store, &pageth);
 				if(debug) kprintf("\ncurrpid %d, store %d, pageth %d",currpid, store, pageth);
-				write_bs((char *)((*frame_number)<<12, store, pageth);
+				write_bs((char *)((*frame_number)<<12), store, pageth);
 			}
 	}
+ return OK;
 }
 
 int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno)
@@ -189,7 +190,7 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 		pd_t *pde = (pd_t*)(pdbr + pd_off);
 		if ((*pde).pde.pd_pres == 0)
 			{kprintf("\nSTAGE 1: We are in deep trouble."); return SYSERR;}
-		pt_t *pte = (pt_t*)(((*pde).pde.pd_base << 12) + pt_offset);
+		pt_t *pte = (pt_t*)(((*pde).pde.pd_base << 12) + pt_off);
 		if ((*pte).pte.pt_pres == 0)
 			{kprintf("\nSTAGE 2: We are in deep trouble."); return SYSERR;}
 		if((*pte).pte.pt_acc == 1)

@@ -27,13 +27,13 @@
 		return;
 	}
 	addr = (char*) PROC1_VADDR;
-	for (i = 0; i < 26; i++) {
+	for (i = 0; i < 6; i++) {
 		*(addr + i * NBPG) = 'A' + i;
 	}
 
 	sleep(6);
 
-	for (i = 0; i < 26; i++) {
+	for (i = 0; i < 6; i++) {
 		kprintf("0x%08x: %c\n", addr + i * NBPG, *(addr + i * NBPG));
 	}
  }
