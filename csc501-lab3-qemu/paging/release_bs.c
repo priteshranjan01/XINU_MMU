@@ -19,21 +19,21 @@ https://classic.wolfware.ncsu.edu/wrap-bin/mesgboard/csc:501::001:1:2017?task=ST
 	
 	for(i=0, ct=0; i < MAX_PROCESS_PER_BS; i++)
 	{
-		if(bsm_tab[store].pr_map[i].bs_pid == pid || if(bsm_tab[store].pr_map[i].bs_pid == -1)
+		if((bsm_tab[bs_id].pr_map[i].bs_pid == currpid) || (bsm_tab[bs_id].pr_map[i].bs_pid == -1))
 		{
-			bsm_tab[store].pr_map[i].bs_pid = -1;
-			bsm_tab[store].pr_map[i].bs_vpno = -1;
+			bsm_tab[bs_id].pr_map[i].bs_pid = -1;
+			bsm_tab[bs_id].pr_map[i].bs_vpno = -1;
 			ct++;
 		}
 	}
 	if(ct == MAX_PROCESS_PER_BS)
 	{
 		// All the processes have released this BS_ID
-		bsm_tab[store].bs_status = BSM_UNMAPPED;
-		bsm_tab[store].bs_npages = -1;
-		bsm_tab[store].bs_npages = -1;
-		bsm_tab[store].bs_sem = -1;
-		bsm_tab[store].shared = TRUE;
+		bsm_tab[bs_id].bs_status = BSM_UNMAPPED;
+		bsm_tab[bs_id].bs_npages = -1;
+		bsm_tab[bs_id].bs_npages = -1;
+		bsm_tab[bs_id].bs_sem = -1;
+		bsm_tab[bs_id].shared = TRUE;
 	}
    return OK;
 }

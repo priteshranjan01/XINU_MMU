@@ -33,7 +33,7 @@ SYSCALL pfint()
   Mark the PTE as present.
   */
   kprintf("\nPage fault error code 0x%x",pferrcode);
-  int staus;
+  int status;
   if (GET_BIT(pferrcode, 0) == 0)
   {
 	status = dummy_pfint(read_cr2());
@@ -71,7 +71,7 @@ SYSCALL dummy_pfint(unsigned long cr2)
 	
 	if ((*pde).pde.pd_pres == 0)
 	{	// Page table itself is not present.
-		status = get_frame_for_PT(&frame_no)
+		status = get_frame_for_PT(&frame_no);
 		if ( status != OK)
 		{
 			kprintf("\nHouston, we got a problem");
