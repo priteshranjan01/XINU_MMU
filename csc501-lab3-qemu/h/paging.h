@@ -140,7 +140,7 @@ void pfintr();
 
 SYSCALL init_bsm();
 SYSCALL get_bsm(bsd_t* bsm_id);
-int is_bsm_available(bsd_t bsm_id, int pid);
+int is_bsm_available(bsd_t bsm_id, int pid, int * bs_shared);
 SYSCALL dummy_pfint(unsigned long cr2);
 
 #define FRM_UNMAPPED	0
