@@ -212,7 +212,7 @@ SYSCALL bsm_unmap(int pid, int vpno, int flag)
 			{
 				//bsm_tab[store].pr_map[i].bs_pid = -1;
 				bsm_tab[store].pr_map[i].bs_vpno = -1;
-				break;
+        return OK;
 			}
 		}
 	}
