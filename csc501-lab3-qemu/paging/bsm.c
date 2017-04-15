@@ -56,16 +56,15 @@ SYSCALL get_bsm(bsd_t * bsm_id)
 int is_bsm_available(bsd_t bsm_id, int pid)
 {
 	/* Return TRUE if bsm_id is available for use by process ID pid*/
+	int i;
 	if (bsm_tab[bsm_id].bs_status == BSM_UNMAPPED)
 		return TRUE;
 	if (bsm_tab[bsm_id].shared == TRUE)
-		return TRUE;
-	int i;
-	for(i=0; i< MAX_PROCESS_PER_BS; i++)
-	{
-		if (bsm_tab[bsm_id].pr_map[i].bs_pid == pid)
-			return TRUE;
-	}
+		for(i=0; i< MAX_PROCESS_PER_BS; i++)
+		{
+			if (bsm_tab[bsm_id].pr_map[i].bs_pid == pid || bsm_tab[bsm_id].pr_map[i].bs_pid == -1)
+				return TRUE;
+		}
 	return FALSE;
 }
 /*-------------------------------------------------------------------------
@@ -107,12 +106,21 @@ SYSCALL bsm_lookup(int pid, unsigned long vaddr, int* store, int* pageth)
  */
 SYSCALL bsm_map(int pid, int vpno, bsd_t bs_id, int npages)
 {
+	/*
+	This method maps a process' virtual address space of size npages starting 
+	at (vpno * 4096) to backing store number bs_id.
+	
+	On success, this inserts the pid into bsm_tab stucture and proctab.
+	MAX_PROCESS_PER_BS controls the number of processes that can have 
+		concurrent mapping to a backing store.
+	Make sure that status of bs_id is BSM_MAPPED before calling this function.
+	*/
 	if (bs_id < 0 || bs_id > BS_COUNT || pid < 1 || pid >= NPROC || npages < 1 
 	|| npages > 256)
 		return SYSERR;
-	if (is_bsm_available(bs_id, currpid) == FALSE)
+	if (is_bsm_available(bs_id, pid) == FALSE)
 	{
-		kprintf("\nBS # %d not available for process ID %d",bs_id, currpid);
+		kprintf("\nBS # %d not available for process ID %d",bs_id, pid);
 		return SYSERR;
 	}
 	
@@ -121,7 +129,7 @@ SYSCALL bsm_map(int pid, int vpno, bsd_t bs_id, int npages)
 		int i;	
 		for (i=0; i< MAX_PROCESS_PER_BS; i++)
 		{
-			if(bsm_tab[bs_id].pr_map[i].bs_pid == -1)
+			if(bsm_tab[bs_id].pr_map[i].bs_pid == pid || bsm_tab[bs_id].pr_map[i].bs_pid == -1)
 			{
 				bsm_tab[bs_id].pr_map[i].bs_pid = pid;
 				bsm_tab[bs_id].pr_map[i].bs_vpno = vpno;
@@ -133,17 +141,15 @@ SYSCALL bsm_map(int pid, int vpno, bsd_t bs_id, int npages)
 				return OK;
 			}
 		}
-		kprintf("\nBSM_MAP failed. Too many processes have already mapped to this BS id");
+		kprintf("\nBSM_MAP failed. MAX_PROCESS_PER_BS have already mapped to this Backing store");
 		return SYSERR;
 	}
 	else if(bsm_tab[bs_id].bs_status == BSM_UNMAPPED)
 	{
-		kprintf("\nFirst call get_bs ");
+		kprintf("\nFirst call get_bs to gain rights BS # %d", bs_id);
 		return SYSERR;
 	}
 }
-
-
 
 /*-------------------------------------------------------------------------
  * bsm_unmap - delete a mapping from bsm_tab
@@ -151,6 +157,32 @@ SYSCALL bsm_map(int pid, int vpno, bsd_t bs_id, int npages)
  */
 SYSCALL bsm_unmap(int pid, int vpno, int flag)
 {
+	/*
+	This method call only removes the vpno information from the mapping. 
+	*/
+	int store, pageth, i;
+	if(bsm_lookup(pid, vpno<<12, &store, &pageth) == OK)
+	{
+		proctab[pid].bs_map[store].bs_status = BSM_UNMAPPED;
+		proctab[pid].bs_map[store].bs_vpno = -1;
+		proctab[pid].bs_map[store].bs_npages = -1;
+		proctab[pid].bs_map[store].shared = TRUE;
+		
+		for(i=0; i < MAX_PROCESS_PER_BS; i++)
+		{
+			if(bsm_tab[store].pr_map[i].bs_pid == pid)
+			{
+				//bsm_tab[store].pr_map[i].bs_pid = -1;
+				bsm_tab[store].pr_map[i].bs_vpno = -1;
+				break;
+			}
+		}
+	}
+	else
+	{
+		kprintf("\nbsm_lookup failed while doing a bsm_unmap ");
+		return SYSERR;
+	}
 }
 
 
