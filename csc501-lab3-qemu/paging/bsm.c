@@ -223,4 +223,20 @@ SYSCALL bsm_unmap(int pid, int vpno, int flag)
 	}
 }
 
+void print_backing_store()
+{
+	int i;
+	kprintf("\nBacking store map table\nStatus  shared npages pid vpno");
+	for (i=0; i < BS_COUNT ; i++)
+	{
+		kprintf("\n%d\t %d\t %d\t",bsm_tab[i].bs_status, bsm_tab[i].shared, bsm_tab[i].bs_npages);
+		for (j=0; j < MAX_PROCESS_PER_BS; j++)
+		{
+			if(bsm_tab[bsm_id].pr_map[i].bs_pid != -1)
+			{
+				kprintf("\n\t\t\tbsm_tab[bsm_id].pr_map[i].bs_pid, bsm_tab[i].pr_map[j].bs_vpno);
+			}
+		}
+	}
+}
 
