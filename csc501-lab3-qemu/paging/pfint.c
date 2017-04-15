@@ -28,19 +28,29 @@ SYSCALL pfint()
   vpno = 20 MSB bits of vaddr 
   BSM_LOOKUP to get BS_ID, pageth 
   frame_number = get_frame
-  read_bs( .....)
+  read_bs( .....)"
   Update the relevant entry in the corresponding PT 
   Mark the PTE as present.
   */
   kprintf("\nPage fault error code 0x%x",pferrcode);
+  int staus;
   if (GET_BIT(pferrcode, 0) == 0)
-	  dummy_pfint(read_cr2());
+  {
+	status = dummy_pfint(read_cr2());
+	if(status == OK)
+	{
+		restore(ps);
+		return OK;
+	}
+	kprintf("\nPage Fault interrupt handler failed");
+  }
   else
   {
-	  kprintf("\n The process ought be killed. It raised a page-level protection violation");
+	  kprintf("\n The process raised a page-level protection violation");
   }
   restore(ps);
-  return OK;
+  kill(currpid);
+  return SYSERR;
 }
 
 SYSCALL dummy_pfint(unsigned long cr2)
@@ -48,7 +58,7 @@ SYSCALL dummy_pfint(unsigned long cr2)
 //	unsigned long cr2 = cr2;
 	unsigned long pdbr;
 	unsigned int pd_off, pt_off, pg_off;
-	int frame_no, i;
+	int frame_no, i, status;
 	pd_off = GET_PD_OFFSET(cr2);
 	pt_off = GET_PT_OFFSET(cr2);
 	pg_off = GET_PG_OFFSET(cr2);
@@ -57,21 +67,22 @@ SYSCALL dummy_pfint(unsigned long cr2)
 	pdbr = (pdbr >> 12) << 12;
 	if(debug) kprintf("\npdbr = 0x%x ,cr2 = 0x%x , pd_off 0x%x pt_off 0x%x pg_off 0x%x",pdbr,cr2,pd_off,pt_off,pg_off);
 	pd_t * pde = (pd_t*)(pdbr + pd_off);
-	kprintf("\npde.pd_base = 0x%x",(*pde).pde.pd_base);
+	if(debug) kprintf("\npde.pd_base = 0x%x",(*pde).pde.pd_base);
 	
 	if ((*pde).pde.pd_pres == 0)
 	{	// Page table itself is not present.
-		if (get_frame_for_PT(&frame_no) != OK)
+		status = get_frame_for_PT(&frame_no)
+		if ( status != OK)
 		{
 			kprintf("\nHouston, we got a problem");
-			kill(currpid);
+			return status;
 		}
 		if(debug) kprintf("\nNew Page table is to be created in frame # %d",frame_no);
 		(*pde).dummy = 0;  // First clear to remove any garbage.
 		(*pde).pde.pd_base = frame_no;
 		(*pde).pde.pd_pres = 1;
 		(*pde).pde.pd_write = 1;
-		kprintf("\npde = 0x%x",(*pde).dummy);
+		if(debug) kprintf("\npde = 0x%x",(*pde).dummy);
 		pt_t * pt_base_address = (pt_t*)(frame_no << 12);
 
 		for(i=0; i<ENTRIES_PER_PAGE; i++)
@@ -80,12 +91,13 @@ SYSCALL dummy_pfint(unsigned long cr2)
 		update_inverted_pt_entry(frame_no, FRM_MAPPED, frame_no, FR_TBL);
 	}
 	int store, pageth;
-	bsm_lookup(currpid, cr2, &store, &pageth);
+	status = bsm_lookup(currpid, cr2, &store, &pageth);
+	if(status != OK) return status;
 	if(debug) kprintf("\ncurrpid %d, store %d, pageth %d",currpid, store, pageth);
 	if (get_frm(&frame_no) != OK)
 	{
 		kprintf("\nHouston, we got another problem");
-		kill(currpid);
+		return SYSERR;
 	}
 	if(debug) kprintf("\nNew Page is created in frame # %d",frame_no);	
 	read_bs((char *)(frame_no<<12), store, pageth);
@@ -97,4 +109,5 @@ SYSCALL dummy_pfint(unsigned long cr2)
 	// Update inverted page table entry 
 	update_inverted_pt_entry(frame_no, FRM_MAPPED, vpno, FR_PAGE);
 	if(debug) kprintf("\n pte value = 0x%x", (*pte).dummy);
+	return OK;
 }

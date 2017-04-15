@@ -53,18 +53,35 @@ SYSCALL get_bsm(bsd_t * bsm_id)
 	return SYSERR;
 }
 
-int is_bsm_available(bsd_t bsm_id, int pid)
+int is_bsm_available(bsd_t bsm_id, int pid, int *shared)
 {
 	/* Return TRUE if bsm_id is available for use by process ID pid*/
+	//NOTE: Disable interrupts before calling this method.
 	int i;
 	if (bsm_tab[bsm_id].bs_status == BSM_UNMAPPED)
+	{
+		*shared = TRUE;
 		return TRUE;
+	}
+	
 	if (bsm_tab[bsm_id].shared == TRUE)
+	{
+		*shared = TRUE;
 		for(i=0; i< MAX_PROCESS_PER_BS; i++)
 		{
 			if (bsm_tab[bsm_id].pr_map[i].bs_pid == pid || bsm_tab[bsm_id].pr_map[i].bs_pid == -1)
 				return TRUE;
 		}
+	}
+	else
+	{
+		*shared = FALSE;
+		for(i=0; i< MAX_PROCESS_PER_BS; i++)
+		{
+			if (bsm_tab[bsm_id].pr_map[i].bs_pid == pid)
+				return TRUE;
+		}
+	}
 	return FALSE;
 }
 /*-------------------------------------------------------------------------
@@ -82,6 +99,7 @@ SYSCALL free_bsm(int i)
 SYSCALL bsm_lookup(int pid, unsigned long vaddr, int* store, int* pageth)
 {
 	int i, x;
+	// NOTE: Disable interrupts before calling this method.
 	unsigned long vpno = vaddr >> 12;
 	for(i=0; i<BS_COUNT; i++)
 	{
@@ -96,6 +114,7 @@ SYSCALL bsm_lookup(int pid, unsigned long vaddr, int* store, int* pageth)
 			}
 		}
 	}
+	kprintf("\nBSM lookup failed");
 	return SYSERR;
 }
 
@@ -114,11 +133,13 @@ SYSCALL bsm_map(int pid, int vpno, bsd_t bs_id, int npages)
 	MAX_PROCESS_PER_BS controls the number of processes that can have 
 		concurrent mapping to a backing store.
 	Make sure that status of bs_id is BSM_MAPPED before calling this function.
+	NOTE: Disable interrupts before calling this method.
 	*/
-	if (bs_id < 0 || bs_id > BS_COUNT || pid < 1 || pid >= NPROC || npages < 1 
-	|| npages > 256)
+	if (bs_id < 0 || bs_id > BS_COUNT || pid < 1 || pid >= NPROC || npages < 1 || npages > 256)
 		return SYSERR;
-	if (is_bsm_available(bs_id, pid) == FALSE)
+	
+	int bs_shared;
+	if (is_bsm_available(bs_id, pid, &bs_shared) == FALSE)
 	{
 		kprintf("\nBS # %d not available for process ID %d",bs_id, pid);
 		return SYSERR;
@@ -127,17 +148,33 @@ SYSCALL bsm_map(int pid, int vpno, bsd_t bs_id, int npages)
 	if(bsm_tab[bs_id].bs_status == BSM_MAPPED)
 	{
 		int i;	
+		// If pid already had an entry then, simply update the entry.
 		for (i=0; i< MAX_PROCESS_PER_BS; i++)
 		{
-			if(bsm_tab[bs_id].pr_map[i].bs_pid == pid || bsm_tab[bs_id].pr_map[i].bs_pid == -1)
+			if(bsm_tab[bs_id].pr_map[i].bs_pid == pid)
 			{
 				bsm_tab[bs_id].pr_map[i].bs_pid = pid;
 				bsm_tab[bs_id].pr_map[i].bs_vpno = vpno;
 				
 				proctab[pid].bs_map[bs_id].bs_status = BSM_MAPPED;
 				proctab[pid].bs_map[bs_id].bs_vpno = vpno;
-				proctab[pid].bs_map[bs_id].bs_npages = npages;
-				proctab[pid].bs_map[bs_id].shared = TRUE;
+				//proctab[pid].bs_map[bs_id].bs_npages = npages;
+				proctab[pid].bs_map[bs_id].shared = bs_shared;
+				return OK;
+			}
+		}
+		// Now look for available slot 
+		for (i=0; i< MAX_PROCESS_PER_BS; i++)
+		{
+			if(bsm_tab[bs_id].pr_map[i].bs_pid == -1)
+			{
+				bsm_tab[bs_id].pr_map[i].bs_pid = pid;
+				bsm_tab[bs_id].pr_map[i].bs_vpno = vpno;
+				
+				proctab[pid].bs_map[bs_id].bs_status = BSM_MAPPED;
+				proctab[pid].bs_map[bs_id].bs_vpno = vpno;
+				//proctab[pid].bs_map[bs_id].bs_npages = npages;
+				proctab[pid].bs_map[bs_id].shared = bs_shared;
 				return OK;
 			}
 		}
@@ -146,7 +183,7 @@ SYSCALL bsm_map(int pid, int vpno, bsd_t bs_id, int npages)
 	}
 	else if(bsm_tab[bs_id].bs_status == BSM_UNMAPPED)
 	{
-		kprintf("\nFirst call get_bs to gain rights BS # %d", bs_id);
+		kprintf("\nFirst call get_bs to gain rights on BS # %d", bs_id);
 		return SYSERR;
 	}
 }
@@ -159,6 +196,7 @@ SYSCALL bsm_unmap(int pid, int vpno, int flag)
 {
 	/*
 	This method call only removes the vpno information from the mapping. 
+	NOTE: Disable interrupts before calling this method.
 	*/
 	int store, pageth, i;
 	if(bsm_lookup(pid, vpno<<12, &store, &pageth) == OK)

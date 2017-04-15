@@ -18,23 +18,23 @@ SYSCALL init_frm()
   {		// 4 Frames for the global page tables.
 	  frm_tab[i].fr_status = FRM_MAPPED;
 	  frm_tab[i].fr_pid = 0;
-	  frm_tab[i].fr_vpno = ENTRIES_PER_PAGE + i;
+	  frm_tab[i].fr_vpno = -1;  // These frames don't keep a virtual address page.
 	  frm_tab[i].fr_refcnt = 1;
 	  frm_tab[i].fr_type = FR_TBL;
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;
   }
-  for(i=4; i< 4+NPROC; i++)
+  for(i=4; i< 4+NPROC; i++)  // Loop from i = 4 to 53
   {		// Next NPROC frames for PD's of processes.
 	  frm_tab[i].fr_status = FRM_MAPPED;
 	  frm_tab[i].fr_pid = i-4;
-	  frm_tab[i].fr_vpno = ENTRIES_PER_PAGE + i;
+	  frm_tab[i].fr_vpno = -1;	// These frames don't keep a virtual address page.
 	  frm_tab[i].fr_refcnt = 1;
 	  frm_tab[i].fr_type = FR_DIR;
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;
   }
-  for (i=4+NPROC; i < FRAME0-ENTRIES_PER_PAGE ; i++)
+  for (i=4+NPROC; i < FRAME0-ENTRIES_PER_PAGE ; i++)  // Loop from 54 to 511
   {	// Frames for page tables.
 	  frm_tab[i].fr_status = FRM_UNMAPPED;
 	  frm_tab[i].fr_pid = -1;
@@ -45,7 +45,7 @@ SYSCALL init_frm()
 	  frm_tab[i].next = -1;
 	  //TODO: Add lines fr_map_t structure is changed
   }
-  for(; i< FRAME0 + NFRAMES - ENTRIES_PER_PAGE; i++)
+  for(; i< FRAME0 + NFRAMES - ENTRIES_PER_PAGE; i++)  //Loop from 512 to 1024
   {		// Available frames for user data.
 	  frm_tab[i].fr_status = FRM_UNMAPPED;
 	  frm_tab[i].fr_pid = -1;
@@ -55,6 +55,7 @@ SYSCALL init_frm()
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;  
 	}
+
   restore(ps);
   return OK;
 }
@@ -67,19 +68,24 @@ SYSCALL init_frm()
 SYSCALL get_frame_for_PD(int pid, int * frame_number)
 {
 	/* Will return a value between 1028 to 1077 both inclusive*/
+	STATWORD ps;
+	disable(ps);
 	if ((frm_tab[pid+4].fr_pid != pid) && frm_tab[pid+4].fr_type != FR_DIR)
 	{
 		kprintf("\nThe inverted page table has not been initialized properly");
+		restore(ps);
 		kill(currpid);
 		return SYSERR;
 	}
-	*frame_number = frm_tab[pid+4].fr_vpno;
+	*frame_number = 4+pid+ENTRIES_PER_PAGE;
 	frm_tab[pid+5].fr_status = FRM_MAPPED;
+	restore(ps);
 	return OK;
 }
 
 SYSCALL get_frame_for_PT(int *frame_number)
 {
+	//NOTE: Disable interrupts before calling this method.
 	int i;
 	for (i=4+NPROC; i < FRAME0-ENTRIES_PER_PAGE ; i++)
 	{

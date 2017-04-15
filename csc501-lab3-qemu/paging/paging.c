@@ -13,10 +13,12 @@ SYSCALL initialize_4_global_page_tables(int frame_no)
 	frame_no = 1024;
 	pt_t * pte_address;
 	int i,j;
+	STATWORD ps;
+	disable(ps);
 	for(i=0; i< 4; i++)
 	{
 		//TODO: Update inverted page table entries.
-		pte_address = (pt_t*)(frame_no * 4096);
+		pte_address = (pt_t*)(frame_no * NBPG);
 		for(j=0; j< ENTRIES_PER_PAGE; j++)
 		{
 			pte_address[j].dummy = 0;
@@ -28,6 +30,7 @@ SYSCALL initialize_4_global_page_tables(int frame_no)
 		gpt_base_address[i] = (unsigned long)pte_address;
 		frame_no++;
 	}
+	restore(ps);
 	return OK;
 }
 
@@ -71,12 +74,19 @@ void convert_vaddr_to_paddr(unsigned long pdbr, unsigned long vaddr)
 
 pd_t * initialize_page_directory(int frame_no)
 {
+	/*
+	Initializes a page directory in frame_no. First 4 entries contain the address
+	for the 4 global page tables. Rest are initialized to 0.
+	
+	Returns (frame_no << 12)
+	*/
 	int i;
+	STATWORD ps;
+	disable(ps);
 	pd_t * addr = (pd_t*)(frame_no << 12);  // Equivalent to multiplying by 4096.
 	if(debug) kprintf("\npage directory base address = 0x%x", addr);
 	for(i=0; i < ENTRIES_PER_PAGE; i++)
 		addr[i].dummy = 0;
-	//TODO: Update inverted page table entries.
 
 	// Write the first 4 entries to correct values.
 	if(debug) kprintf("\nfirst 5 entries in page directory");
@@ -87,15 +97,13 @@ pd_t * initialize_page_directory(int frame_no)
 		addr[i].pde.pd_base = (gpt_base_address[i]) >> 12;
 		if(debug) kprintf("\naddress= 0x%x content= 0x%x",addr+i,addr[i].dummy);
 	}
-	for(i=0; i< 1; i++)
-	{
-		convert_vaddr_to_paddr(addr, i*133);
-	}
+	restore(ps);
 	return addr;
 }
 
 SYSCALL update_inverted_pt_entry(int frame_no, int status, int vpno, int type)
 {
+	/* frame_no should be between 1024 to 2048 */
 	if (frame_no < ENTRIES_PER_PAGE || frame_no >= ENTRIES_PER_PAGE*2)
 		return SYSERR;
 	frame_no -= ENTRIES_PER_PAGE;
