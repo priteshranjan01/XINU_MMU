@@ -77,7 +77,7 @@ SYSCALL create(procaddr,ssize,priority,name,nargs,args)
 
 	pptr->pdbr = addr;
 	pptr->pdbr = ((pptr->pdbr)>>12)<<12;
-	
+	pptr->store = -1;
 	/* Business as usual */
 	
 		/* Bottom of stack */

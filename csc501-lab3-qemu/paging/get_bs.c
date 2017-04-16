@@ -5,41 +5,60 @@
 
 int get_bs(bsd_t bs_id, unsigned int npages) {
 
-	/* requests a new mapping of npages with ID map_id */
-	/*
-	
-	*/
+	/* requests a new mapping of npages with ID map_id for the process calling this of shared as TRUE*/
+	return reserve_bs(currpid, bs_id, npages, TRUE);
+}
+
+int reserve_bs(int pid, bsd_t bs_id, unsigned int npages, int shared)
+{
 	int bs_shared;
 	STATWORD ps;
 	disable(ps);
-    if (bs_id < 0 || bs_id > BS_COUNT || npages <= 0 || npages > 256)
+    if (bs_id < 0 || bs_id > BS_COUNT || npages <= 0 || npages > 256 || pid <0 || pid >= NPROC)
 	{
-		kprintf("\nInvalid inputs to get_bs procedure");
+		kprintf("\nInvalid inputs to reserve_bs procedure");
 		restore(ps);
 		return SYSERR;
 	}
 	
-	if (is_bsm_available(bs_id, currpid, &bs_shared) == FALSE)
+	if (is_bsm_available(bs_id, pid, &bs_shared) == FALSE)
 	{
-		kprintf("\nBS # %d not available for process ID %d",bs_id, currpid);
+		kprintf("\nBS # %d not available for process ID %d",bs_id, pid);
 		restore(ps);
 		return SYSERR;
 	}
-	
+	if(bs_shared != shared)
+	{
+		kprintf("\nRequired sharing status is not available");
+		restore(ps); return SYSERR;
+	}
+	int i;
+	if(bs_shared == TRUE)
+	{// If pid already had an entry then, simply update the entry.
+		for (i=0; i< MAX_PROCESS_PER_BS; i++)
+		{
+			if(bsm_tab[bs_id].pr_map[i].bs_pid == pid)
+				break;
+		}
+		if(i == MAX_PROCESS_PER_BS)
+		{	// Not found, Now look for available slot 
+			for (i=0; i< MAX_PROCESS_PER_BS; i++)
+			{
+				if(bsm_tab[bs_id].pr_map[i].bs_pid == -1)
+				{bsm_tab[bs_id].pr_map[i].bs_pid = pid; break;}
+			}
+		}
+	}
+	else
+	{
+		bsm_tab[bs_id].pr_map[0].bs_pid = pid;
+	}
 	if (bsm_tab[bs_id].bs_status == BSM_UNMAPPED)
 		bsm_tab[bs_id].bs_npages = npages;
 	bsm_tab[bs_id].bs_status = BSM_MAPPED;
-	bsm_tab[bs_id].shared = bs_shared;
+	bsm_tab[bs_id].shared = shared;
 	
-	int i;
-	for (i=0; (i< MAX_PROCESS_PER_BS) && (bs_shared == TRUE); i++)
-	{
-		if(bsm_tab[bs_id].pr_map[i].bs_pid == -1 || bsm_tab[bs_id].pr_map[i].bs_pid == currpid)
-		{
-			bsm_tab[bs_id].pr_map[i].bs_pid = currpid;  // vpno shall be set in bsm_map
-			break;
-		}
-	}
+
 	if(i== MAX_PROCESS_PER_BS)
 	{
 		kprintf("\nGET_BS failed. MAX_PROCESS_PER_BS have already reserved this Backing store");
@@ -47,9 +66,10 @@ int get_bs(bsd_t bs_id, unsigned int npages) {
 		return SYSERR;
 	}
 	
-	proctab[currpid].bs_map[bs_id].bs_status = BSM_MAPPED;
-	proctab[currpid].bs_map[bs_id].bs_npages = npages;
-	proctab[currpid].bs_map[bs_id].shared = bs_shared;
+	proctab[pid].bs_map[bs_id].bs_status = BSM_MAPPED;
+	proctab[pid].bs_map[bs_id].bs_npages = bsm_tab[bs_id].bs_npages;
+	proctab[pid].bs_map[bs_id].shared = shared;
 	restore(ps);
 	return bsm_tab[bs_id].bs_npages;
+
 }

@@ -120,6 +120,85 @@ int insert_into_sc_queue(int frame_no)
 	}
 	return OK;
 }
+
+int clean_up_inverted_page_table(int pid)
+{
+	int p, q;
+	if(sc_head == -1 || sc_tail == -1)  return OK;
+	p = sc_head; q = sc_tail;
+	do{
+		if(frm_tab[p].fr_pid == pid)
+		{
+		  frm_tab[p].fr_status = FRM_UNMAPPED;
+		  frm_tab[p].fr_pid = -1;
+		  frm_tab[p].fr_vpno = -1;
+		  frm_tab[p].fr_refcnt = -1;
+		  frm_tab[p].fr_type = FR_PAGE;
+		  frm_tab[p].fr_dirty = FALSE;
+		  p = remove_from_sc_queue(p);
+		}
+		else
+		{	q = p;
+			p = proctab[p].next;
+		}
+	}while(p != sc_head);
+	return OK;
+}
+
+int remove_from_sc_queue(int frame_no)
+{
+	if (frame_no < 512 || frame_no > 512 + NFRAMES)
+	{
+		kprintf("\n Invalid Frame # %d Range of value is 512 to %d", frame_no, 512 + NFRAMES);
+		return SYSERR;
+	}
+	int p, q;
+	if(sc_head == -1 || sc_tail == -1)
+	{
+		kprintf("\nSC head = %d ; SC_tail = %d", sc_head, sc_tail); 
+		return SYSERR;
+	}
+	if(sc_head == sc_tail)
+	{
+		if(sc_head == frame_no)
+		{
+			sc_head = sc_tail = -1;
+			return OK;
+		}
+		else
+		{
+			kprintf("\nTried to remove a frame not in queue");
+			return SYSERR;
+		}
+	}
+	p = sc_head;	q = sc_tail;
+	while(p != frame_no)
+	{
+		q = p; 
+		p = frm_tab[p].next;
+		if (p == sc_head) 
+		{
+			kprintf("\nTried to remove a frame not in queue");
+			return SYSERR;
+		}
+	}
+	if(sc_head == frame_no)
+	{
+		sc_head = frm_tab[sc_head].next;
+	}
+	if(sc_tail == frame_no)
+	{
+		sc_tail = frm_tab[sc_tail].next;
+	}
+	
+	frm_tab[q].next = frm_tab[p].next;
+	int next = frm_tab[q].next;
+	frm_tab[p].next = -1;
+	
+	return next;
+}
+
+
 SYSCALL get_frm(int* frame_number)
 {
 	/* Will give a value in between 1030 and 2047, both inclusive */
@@ -215,7 +294,7 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 			// TODO: Decrease the ref_cnt from inverted page table. if it becomes zero then invalidate the PDE.
 			// TODO: Invalidate the TLB entry.
 			// Remove the frame from the queue.
-			// See if we need to remove the queue. Currently, I think we don't.
+			// See if we need to remove from the queue. Currently, I think we don't.
 			sc_tail = sc_head;
 			sc_head = frm_tab[sc_head].next;
 			//frm_tab[sc_tail].next = sc_head;
@@ -231,9 +310,71 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
  * free_frm - free a frame 
  *-------------------------------------------------------------------------
  */
-SYSCALL free_frm(int i)
+SYSCALL free_frm(int frame_no)
 {
 
-  kprintf("To be implemented!\n");
+//  kprintf("To be implemented!\n");
+  /*
+  Expects a value x ,  1024 <= x < 2048
+  */
+  STATWORD ps;
+  disable(ps);
+  int i;
+  pt_t * addr = (pt_t*)(frame_no * NBPG);
+  pd_t * addr1 = (pt_t*)(frame_no * NBPG);
+  frame_no -= ENTRIES_PER_PAGE;
+  if(frame_no< 5)
+  {		if(debug) kprintf("4 Frames for the global page tables and one PD for Null process can't be freed.");
+		//DO nothing, Keep silent. return OK;
+  }
+  else if(frame_no >= 5 && frame_no< 4+NPROC)  // frame_no in between 4 and 53
+  {		// Next NPROC frames for PD's of processes.
+	  frm_tab[frame_no].fr_status = FRM_MAPPED;
+	  frm_tab[frame_no].fr_pid = frame_no-4;
+	  frm_tab[frame_no].fr_vpno = -1;	// These frames don't keep a virtual address page.
+	  frm_tab[frame_no].fr_refcnt = 1;
+	  frm_tab[frame_no].fr_type = FR_DIR;
+	  frm_tab[frame_no].fr_dirty = FALSE;
+	  frm_tab[frame_no].next = -1;
+	  // Invalidate the entries in the PD this frame holds.
+	  
+	  for(i=0; i < ENTRIES_PER_PAGE; i++)
+	  {
+		  addr1[i].dummy = 0;
+	  }
+  }
+  else if (frame_no >= 4+NPROC && frame_no < FRAME0-ENTRIES_PER_PAGE)  // 54 to 511
+  {	// Frames for page tables.
+	  frm_tab[frame_no].fr_status = FRM_UNMAPPED;
+	  frm_tab[frame_no].fr_pid = -1;
+	  frm_tab[frame_no].fr_vpno = -1;
+	  frm_tab[frame_no].fr_refcnt = -1;
+	  frm_tab[frame_no].fr_type = FR_TBL;
+	  frm_tab[frame_no].fr_dirty = FALSE;
+	  frm_tab[frame_no].next = -1;
+	  //Invalidate the entries in the PT this frame holds.
+	  for(i=0; i < ENTRIES_PER_PAGE; i++)
+	  {
+		  addr[i].dummy = 0;
+	  }
+  }
+  else if(frame_no >= FRAME0-ENTRIES_PER_PAGE && frame_no < FRAME0 + NFRAMES - ENTRIES_PER_PAGE)  // 512 to 1024
+  {		// Available frames for user data.
+	  frm_tab[frame_no].fr_status = FRM_UNMAPPED;
+	  frm_tab[frame_no].fr_pid = -1;
+	  frm_tab[frame_no].fr_vpno = -1;
+	  frm_tab[frame_no].fr_refcnt = -1;
+	  frm_tab[frame_no].fr_type = FR_PAGE;
+	  frm_tab[frame_no].fr_dirty = FALSE;
+	  frm_tab[frame_no].next = -1;  
+	}
+	else
+	{
+		restore(ps);
+		return SYSERR;
+	}
+
+  restore(ps);
   return OK;
 }
+

@@ -117,7 +117,9 @@ pd_t* initialize_page_directory(int frame_no);
 
 /* given calls for dealing with backing store */
 
-int get_bs(bsd_t, unsigned int);
+int get_bs(bsd_t, unsigned int npages);
+int reserve_bs(int pid, bsd_t bs_id, unsigned int npages, int shared)
+
 SYSCALL release_bs(bsd_t);
 SYSCALL read_bs(char *, bsd_t, int);
 SYSCALL write_bs(char *, bsd_t, int);

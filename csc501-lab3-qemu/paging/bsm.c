@@ -85,11 +85,19 @@ int is_bsm_available(bsd_t bsm_id, int pid, int *shared)
 	return FALSE;
 }
 /*-------------------------------------------------------------------------
- * free_bsm - free an entry from bsm_tab 
+ * free_bsm - free all entries from bsm_tab of process pid
  *-------------------------------------------------------------------------
  */
-SYSCALL free_bsm(int i)
+SYSCALL free_bsm(int pid)
 {
+	int i;
+	for(i = 0; i < BS_COUNT; i++)
+	{
+		if(proctab[pid].bs_map[i].bs_status == BSM_MAPPED)
+		{
+			__release_bs__(pid, i);
+		}
+	}
 }
 
 /*-------------------------------------------------------------------------
@@ -212,7 +220,7 @@ SYSCALL bsm_unmap(int pid, int vpno, int flag)
 			{
 				//bsm_tab[store].pr_map[i].bs_pid = -1;
 				bsm_tab[store].pr_map[i].bs_vpno = -1;
-        return OK;
+				return OK;
 			}
 		}
 	}
@@ -225,16 +233,16 @@ SYSCALL bsm_unmap(int pid, int vpno, int flag)
 
 void print_backing_store()
 {
-	int i;
+	int i, j;
 	kprintf("\nBacking store map table\nStatus  shared npages pid vpno");
 	for (i=0; i < BS_COUNT ; i++)
 	{
 		kprintf("\n%d\t %d\t %d\t",bsm_tab[i].bs_status, bsm_tab[i].shared, bsm_tab[i].bs_npages);
 		for (j=0; j < MAX_PROCESS_PER_BS; j++)
 		{
-			if(bsm_tab[bsm_id].pr_map[i].bs_pid != -1)
+			if(bsm_tab[i].pr_map[j].bs_pid != -1)
 			{
-				kprintf("\n\t\t\tbsm_tab[bsm_id].pr_map[i].bs_pid, bsm_tab[i].pr_map[j].bs_vpno);
+				kprintf("\n\t\t\tbsm_tab[i].pr_map[j].bs_pid, bsm_tab[i].pr_map[j].bs_vpno);
 			}
 		}
 	}
