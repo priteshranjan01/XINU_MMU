@@ -242,7 +242,7 @@ void print_backing_store()
 		{
 			if(bsm_tab[i].pr_map[j].bs_pid != -1)
 			{
-				kprintf("\n\t\t\tbsm_tab[i].pr_map[j].bs_pid, bsm_tab[i].pr_map[j].bs_vpno);
+				kprintf("\n\t\t\t %d\t %d", bsm_tab[i].pr_map[j].bs_pid, bsm_tab[i].pr_map[j].bs_vpno);
 			}
 		}
 	}

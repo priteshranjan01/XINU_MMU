@@ -139,7 +139,7 @@ int clean_up_inverted_page_table(int pid)
 		}
 		else
 		{	q = p;
-			p = proctab[p].next;
+			p = frm_tab[p].next;
 		}
 	}while(p != sc_head);
 	return OK;
