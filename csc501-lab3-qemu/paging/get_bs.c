@@ -27,11 +27,7 @@ int reserve_bs(int pid, bsd_t bs_id, unsigned int npages, int shared)
 		restore(ps);
 		return SYSERR;
 	}
-	if(bs_shared != shared)
-	{
-		kprintf("\nRequired sharing status is not available");
-		restore(ps); return SYSERR;
-	}
+
 	int i;
 	if(bs_shared == TRUE)
 	{// If pid already had an entry then, simply update the entry.
