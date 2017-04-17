@@ -39,13 +39,13 @@ SYSCALL get_bsm(bsd_t * bsm_id)
 {
 	/* Returns OK if there was one unmapped BS. bsm_id shall have that ID */
 	STATWORD ps;
-	int i;
+	bsd_t i;
 	disable(ps);
 	for(i=0; i< BS_COUNT; i++)
 	{
 		if (bsm_tab[i].bs_status == BSM_UNMAPPED)
 		{
-			bsm_id = i;
+			*bsm_id = i;
 			return OK;
 		}
 	}
