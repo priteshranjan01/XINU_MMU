@@ -65,8 +65,8 @@ int *x;
 
 *x = 100;
 	*(x + 1) = 200;
-
 	kprintf("heap variable: %d %d\n", *x, *(x + 1));
+vfreemem(x, 1024);
 
 kprintf("If now you fail then kill is to blame");
 
