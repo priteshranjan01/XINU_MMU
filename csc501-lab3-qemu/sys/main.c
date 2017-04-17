@@ -28,7 +28,7 @@ void proc1_test1(char *msg, int lck) {
 		*(addr + i * NBPG) = 'A' + i;
 	}
 
-	sleep(1);
+//	sleep(1);
 
 	for (i = 0; i < 26; i++) {
 		kprintf("0x%08x: %c\n", addr + i * NBPG, *(addr + i * NBPG));
@@ -82,18 +82,18 @@ kprintf("\n1: shared memory\n");
 	resume(pid1);
 	sleep(10);
 //test_sc_queue();
-
+//kill(pid1);
  kprintf("\n2: vgetmem/vfreemem\n");
 	pid1 = vcreate(proc1_test2, 2000, 100, 20, "proc1_test2", 0, NULL);
 	kprintf("pid %d has private heap\n", pid1);
 	resume(pid1);
 	sleep(3);
-
+kill(pid1);
  kprintf("\n2: vgetmem/vfreemem\n");
 	pid1 = vcreate(proc1_test2, 2000, 100, 20, "proc1_test2", 0, NULL);
 	kprintf("pid %d has private heap\n", pid1);
 	resume(pid1);
 	sleep(3);
-
+kill(pid1);
  shutdown();
  }

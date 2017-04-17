@@ -103,30 +103,38 @@ SYSCALL get_frame_for_PT(int *frame_number)
 
 int clean_up_inverted_page_table(int pid)
 {
-	int p, q;
+	// Free up the entries in inverted page table.
+	// Iterates through SC queue. If any frame of process pid is found or of a process which 
+	// is dead then frees that frame.
+	int p, i, nelements;
+	int queue[NFRAMES];
+	
 	if(sc_head == -1)  return OK;
-	p = sc_head;
 	if(debug) kprintf("\nCleanup called for pid # %d, sc_head = %d\n", pid, p);
-	do{
-		if(frm_tab[p].fr_pid == pid)
+	
+	p = sc_head;
+	for(i=0; i<NFRAMES; i++)
+	{
+		queue[i] = p;
+		p = frm_tab[p].next;
+		if(p == sc_head)
+			break;
+	}
+	nelements = i;
+	print_sc_queue();
+	
+	for(i = 0; i<nelements; i++)
+	{
+		p = queue[i];
+		if (debug) kprintf("\nfr_pid = %d, process state = %d, frame status=%d, vpno=0x%x, type=%d, dirty=%d",frm_tab[p].fr_pid, proctab[frm_tab[p].fr_pid].pstate, frm_tab[p].fr_status, frm_tab[p].fr_vpno, frm_tab[p].fr_type, frm_tab[p].fr_dirty);
+		if(frm_tab[p].fr_pid == pid || proctab[frm_tab[p].fr_pid].pstate == PRFREE)
 		{
-		  frm_tab[p].fr_status = FRM_UNMAPPED;
-		  frm_tab[p].fr_pid = -1;
-		  frm_tab[p].fr_vpno = -1;
-		  frm_tab[p].fr_refcnt = -1;
-		  frm_tab[p].fr_type = FR_PAGE;
-		  frm_tab[p].fr_dirty = FALSE;
-
-		 free_frm(p+ENTRIES_PER_PAGE);
-		  p = remove_from_sc_queue(p);
+		  free_frm(p+ENTRIES_PER_PAGE);
+		  remove_from_sc_queue(p);
 		}
-		else
-		{	q = p;
-			p = frm_tab[p].next;
-		}
-
-       	kprintf("\nNew p %d q = %d",p,q);	
-	}while(p != sc_head && p != SYSERR);
+       	kprintf("\nNew p %d ",p);	
+	}
+	print_sc_queue();
 	return OK;
 }
 
@@ -165,14 +173,14 @@ SYSCALL get_frm(int* frame_number)
 
 int get_victim_frame(int * frame_number)
 {
-	int status, is_dirty, store, pageth;
+	int status, is_dirty, store, pageth, pid;
 	unsigned long vpno;
 	switch(grpolicy())
 	{
 		case AGING:
 		default: /* Fall Through */
 		case SC: 
-			status = get_SC_policy_victim(frame_number, &is_dirty, &vpno);
+			status = get_SC_policy_victim(frame_number, &is_dirty, &vpno, &pid);
 			if(status == SYSERR)
 			{
 				kprintf("\n get_SC_policy_victim returned SYSERR");
@@ -181,22 +189,23 @@ int get_victim_frame(int * frame_number)
 			if(is_dirty)
 			{
 				if(debug) kprintf("\nDirty bit was set Write to backing store. ");
-				status = bsm_lookup(currpid, vpno<<12, &store, &pageth);
-				if(debug) kprintf("\ncurrpid %d, store %d, pageth %d vpno=0x%08x",currpid, store, pageth, vpno);
+				status = bsm_lookup(pid, vpno<<12, &store, &pageth);
+				if(debug) kprintf("\npid %d, store %d, pageth %d vpno=0x%x",pid, store, pageth, vpno);
 				if(status == SYSERR)
 				{
-					kprintf("\nBsm lookup failed while trying to get victim frame");
-					return status;
+					kprintf("\nBsm lookup failed while trying to get victim frame. Swapping out to BS aborted");	
 				}
-				write_bs((char *)((*frame_number)<<12), store, pageth);
+				else
+				{write_bs((char *)((*frame_number)<<12), store, pageth);}
 			}
 	}
  return OK;
 }
 
-int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno)
+int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno,int *pid)
 {
 	/*
+	Returns the frame to be swapped out. THe frames owner pid. is_dirty frame and the virtual pages that it maps.
 	--> frame_number tells the next victim.
 	--> is_dirty tells if the page is dirty.
 	This procedure also invalidates the PTE entry.
@@ -204,7 +213,7 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 		If the reference_count becomes zero then, invalidates the PDE entry.
 	Removes the victim frame from SC queue.
 	*/
-	int ct=0, pid;
+	int ct=0;
 	unsigned long pdbr, pd_off, pt_off;
 	for(; ct <= NFRAMES; ct++)
 	{	
@@ -213,9 +222,9 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 			kprintf("\nget_SC_policy_victim: SC queue is not set sc_head %d",sc_head);
 			return SYSERR;
 		}
-		pid = frm_tab[sc_head].fr_pid;
+		*pid = frm_tab[sc_head].fr_pid;
 		*vpno = frm_tab[sc_head].fr_vpno;
-		pdbr = ((proctab[pid].pdbr)>>12)<<12;  // Clear the 12 LSB bits.
+		pdbr = ((proctab[*pid].pdbr)>>12)<<12;  // Clear the 12 LSB bits.
 		pd_off = ((*vpno) <<12) >> 22;  // Double check this. vpno shall have only 20 LSB bits.
 		pt_off = ((*vpno) << 22) >> 22; 
 		if(debug) kprintf("\nDouble Check these values: pdbr = 0x%x, vpno = 0x%08x pd_off 0x%x pt_off 0x%x ",pdbr,*vpno, pd_off,pt_off);
@@ -282,7 +291,7 @@ SYSCALL free_frm(int frame_no)
 	  frm_tab[frame_no].fr_refcnt = -1;
 	  frm_tab[frame_no].fr_type = FR_TBL;
 	  frm_tab[frame_no].fr_dirty = FALSE;
-	  frm_tab[frame_no].next = -1;
+	  //frm_tab[frame_no].next = -1;
 	  //Invalidate the entries in the PT this frame holds.
 	  for(i=0; i < ENTRIES_PER_PAGE; i++)
 	  {
@@ -297,7 +306,7 @@ SYSCALL free_frm(int frame_no)
 	  frm_tab[frame_no].fr_refcnt = -1;
 	  frm_tab[frame_no].fr_type = FR_PAGE;
 	  frm_tab[frame_no].fr_dirty = FALSE;
-	  frm_tab[frame_no].next = -1;  
+	  //frm_tab[frame_no].next = -1;  
 	}
 	else
 	{
