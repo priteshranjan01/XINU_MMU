@@ -42,9 +42,8 @@ SYSCALL kill(int pid)
 	freestk(pptr->pbase, pptr->pstklen);
  if(pptr->store != -1)
 	{
-		free_bsm(pid);
-		//free_frm(pid+4+ENTRIES_PER_PAGE);  // Free the frame containing the Page Directory for this process.
-		clean_up_inverted_page_table(pid) ;
+	//	free_bsm(pid);
+	//	clean_up_inverted_page_table(pid) ;
 	}
 	switch (pptr->pstate) {
 
