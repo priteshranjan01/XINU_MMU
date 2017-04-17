@@ -323,25 +323,9 @@ SYSCALL free_frm(int frame_no)
   pt_t * addr = (pt_t*)(frame_no * NBPG);
   pd_t * addr1 = (pt_t*)(frame_no * NBPG);
   frame_no -= ENTRIES_PER_PAGE;
-  if(frame_no< 5)
-  {		if(debug) kprintf("4 Frames for the global page tables and one PD for Null process can't be freed.");
+  if(frame_no< 4+NPROC)
+  {		if(debug) kprintf("4 Frames for the global page tables and PD can't be freed.");
 		//DO nothing, Keep silent. return OK;
-  }
-  else if(frame_no >= 5 && frame_no< 4+NPROC)  // frame_no in between 4 and 53
-  {		// Next NPROC frames for PD's of processes.
-	  frm_tab[frame_no].fr_status = FRM_MAPPED;
-	  frm_tab[frame_no].fr_pid = frame_no-4;
-	  frm_tab[frame_no].fr_vpno = -1;	// These frames don't keep a virtual address page.
-	  frm_tab[frame_no].fr_refcnt = 1;
-	  frm_tab[frame_no].fr_type = FR_DIR;
-	  frm_tab[frame_no].fr_dirty = FALSE;
-	  frm_tab[frame_no].next = -1;
-	  // Invalidate the entries in the PD this frame holds.
-	  
-	  for(i=0; i < ENTRIES_PER_PAGE; i++)
-	  {
-		  addr1[i].dummy = 0;
-	  }
   }
   else if (frame_no >= 4+NPROC && frame_no < FRAME0-ENTRIES_PER_PAGE)  // 54 to 511
   {	// Frames for page tables.

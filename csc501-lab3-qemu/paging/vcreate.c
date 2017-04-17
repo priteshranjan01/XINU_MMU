@@ -66,14 +66,14 @@ SYSCALL vcreate(procaddr,ssize,hsize,priority,name,nargs,args)
 	proctab[pid].vmemlist->mnext = (struct mblock*)(proctab[pid].vhpno * NBPG);
 	proctab[pid].vmemlist->mlen = hsize * NBPG;
 
-	struct mblock * mptr = proctab[pid].vmemlist->mnext;
-	mptr->mnext = (struct mblock*)NULL;
-	mptr->mlen = hsize * NBPG;
+//	struct mblock * mptr = proctab[pid].vmemlist->mnext;
+//	mptr->mnext = (struct mblock*)NULL;
+//	mptr->mlen = hsize * NBPG;
 	// I hope i didn't miss anything. Let's do a Litmus test
-	kprintf("\npid = %d \t vmemlist->mnext 0x%08x  \t vmemlist->mlen %d",pid, (unsigned)(proctab[pid].vmemlist->mnext), proctab[pid].vmemlist->mlen);
-	kprintf("\n mptr 0x%08x  size = %d ",(unsigned)mptr, mptr->mlen);
+//	kprintf("\npid = %d \t vmemlist->mnext 0x%08x  \t vmemlist->mlen %d",pid, (unsigned)(proctab[pid].vmemlist->mnext), proctab[pid].vmemlist->mlen);
+//	kprintf("\n mptr 0x%08x  size = %d ",(unsigned)mptr, mptr->mlen);
 	restore(ps);
-	return OK;
+	return pid;
 }
 
 /*------------------------------------------------------------------------

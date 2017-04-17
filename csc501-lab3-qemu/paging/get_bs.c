@@ -16,7 +16,7 @@ int reserve_bs(int pid, bsd_t bs_id, unsigned int npages, int shared)
 	disable(ps);
     if (bs_id < 0 || bs_id > BS_COUNT || npages <= 0 || npages > 256 || pid <0 || pid >= NPROC)
 	{
-		kprintf("\nInvalid inputs to reserve_bs procedure");
+		kprintf("\nInvalid inputs to reserve_bs. pid = %d, bs_id= %d, npages= %d", pid, bs_id, npages);
 		restore(ps);
 		return SYSERR;
 	}

@@ -39,13 +39,13 @@ SYSCALL kill(int pid)
 		close(dev);
 	
 	send(pptr->pnxtkin, pid);
-	if(pptr->store != -1)
+	freestk(pptr->pbase, pptr->pstklen);
+ if(pptr->store != -1)
 	{
 		free_bsm(pid);
 		free_frm(pid+4+ENTRIES_PER_PAGE);  // Free the frame containing the Page Directory for this process.
 		clean_up_inverted_page_table(pid) ;
 	}
-	freestk(pptr->pbase, pptr->pstklen);
 	switch (pptr->pstate) {
 
 	case PRCURR:	pptr->pstate = PRFREE;	/* suicide */
@@ -62,6 +62,7 @@ SYSCALL kill(int pid)
 						/* fall through	*/
 	default:	pptr->pstate = PRFREE;
 	}
+
 	restore(ps);
 	return(OK);
 }

@@ -45,40 +45,25 @@ void proc1_test1(char *msg, int lck) {
 	return;
 }
 
-void proc1_test3(char *msg, int lck) {
-
-	char *addr;
-	int i;
-
-	addr = (char*) 0x0;
-
-	for (i = 0; i < 1024; i++) {
-		*(addr + i * NBPG) = 'B';
-	}
-
-	for (i = 0; i < 1024; i++) {
-		kprintf("0x%08x: %c\n", addr + i * NBPG, *(addr + i * NBPG));
-	}
-
-	return;
-}
 
 
 void proc1_test2(char *msg, int lck) {
-	int *x;
-
+	
+int pid = 48;
 	kprintf("ready to allocate heap space\n");
+	struct mblock * mptr = proctab[pid].vmemlist->mnext;
+	mptr->mnext = (struct mblock*)NULL;
+	mptr->mlen = 100 * NBPG;
+// I hope i didn't miss anything. Let's do a Litmus test
+	kprintf("\npid = %d \t vmemlist->mnext 0x%08x  \t vmemlist->mlen %d",pid, (unsigned)(proctab[pid].vmemlist->mnext), proctab[pid].vmemlist->mlen);
+	kprintf("\n mptr 0x%08x  size = %d ",(unsigned)mptr, mptr->mlen);
+kprintf("If now you fail then kill is to blame");
 }
 
 
 int main() {
 	int pid1;
 	int pid2;
-
-	kprintf("\n1: shared memory\n");
-	pid1 = create(proc1_test1, 2000, 20, "proc1_test1", 0, NULL);
-	resume(pid1);
-	sleep(5);
 
 
 kprintf("\n2: vgetmem/vfreemem\n");
