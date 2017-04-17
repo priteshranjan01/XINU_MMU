@@ -107,6 +107,8 @@ int insert_into_sc_queue(int frame_no)
 		kprintf("\n Invalid Frame # %d Range of value is 512 to %d", frame_no, 512 + NFRAMES);
 		return SYSERR;
 	}
+	print_sc_queue();
+	kprintf("\nInserting frame_no # %d into queue", frame_no);
 	if(sc_head == -1)
 	{
 		sc_head = sc_tail = frame_no;
@@ -118,6 +120,7 @@ int insert_into_sc_queue(int frame_no)
 		frm_tab[sc_tail].next = frame_no;
 		sc_tail = frame_no;
 	}
+	print_sc_queue();
 	return OK;
 }
 
@@ -160,15 +163,19 @@ int remove_from_sc_queue(int frame_no)
 	int p, q;
 	if(sc_head == -1 || sc_tail == -1)
 	{
-		kprintf("\nSC head = %d ; SC_tail = %d", sc_head, sc_tail); 
+		kprintf("\nERROR: SC head = %d ; SC_tail = %d", sc_head, sc_tail); 
+		sc_head = sc_tail = -1;
 		return SYSERR;
 	}
+	print_sc_queue();
+	kprintf("\nREMOVING frame_no # %d from queue", frame_no);
+
 	if(sc_head == sc_tail)
 	{
 		if(sc_head == frame_no)
 		{
 			sc_head = sc_tail = -1;
-			return OK;
+			return -1;
 		}
 		else
 		{
@@ -187,22 +194,37 @@ int remove_from_sc_queue(int frame_no)
 			return SYSERR;
 		}
 	}
-	if(sc_head == frame_no)
+	if(sc_head == p)
 	{
 		sc_head = frm_tab[sc_head].next;
 	}
-	if(sc_tail == frame_no)
+	if(sc_tail == p)
 	{
-		sc_tail = frm_tab[sc_tail].next;
+		sc_tail = q;
 	}
 	
 	frm_tab[q].next = frm_tab[p].next;
 	int next = frm_tab[q].next;
 	frm_tab[p].next = -1;
-	
+	print_sc_queue();
 	return next;
 }
 
+void print_sc_queue()
+{
+	int p = sc_head;
+	kprintf("\nsc_head = %d , sc_tail = %d\n", sc_head, sc_tail);
+	if(sc_head == -1 || sc_tail == -1)
+	{
+		sc_head = sc_tail = -1;
+		return;
+	}
+	do
+	{
+		kprintf(" %d ",p);
+		p = frm_tab[p].next;
+	}while(p != sc_head || p != -1);
+}
 
 SYSCALL get_frm(int* frame_number)
 {
@@ -224,6 +246,7 @@ SYSCALL get_frm(int* frame_number)
 			default: /* Fall Through */
 			case SC: 
 				status = insert_into_sc_queue(i);  /* Expects a value in range 512 to 1023 both inclusive*/
+		
 		}
 		return OK;
 	}
@@ -268,7 +291,7 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 	int ct=0, pid;
 	unsigned long pdbr, pd_off, pt_off;
 	for(; ct <= NFRAMES; ct++)
-	{
+	{	print_
 		pid = frm_tab[sc_head].fr_pid;
 		*vpno = frm_tab[sc_head].fr_vpno;
 		pdbr = ((proctab[pid].pdbr)>>12)<<12;  // Clear the 12 LSB bits.

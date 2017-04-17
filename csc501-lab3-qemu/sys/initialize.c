@@ -53,6 +53,7 @@ int	console_dev;		/* the console device			*/
 
 /*  added for the demand paging */
 int page_replace_policy = SC;
+sc_head = sc_tail = -1;
 int pr_debug= TRUE;  /* Print page replacement debug information */
 /************************************************************************/
 /***				NOTE:				      ***/

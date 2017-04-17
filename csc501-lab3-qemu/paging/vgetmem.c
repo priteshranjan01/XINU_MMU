@@ -18,7 +18,7 @@ WORD	*vgetmem(nbytes)
 //	kprintf("To be implemented!\n");
 	STATWORD ps;
 	int pid = currpid;
-	struct mblock *p, *q, *leftover *memlist, *mptr;
+	struct mblock *p, *q, *leftover, *memlist, *mptr;
 	
 	disable(ps);
 	if(proctab[pid].vmemlist->mnext == (struct mblock*)NULL)
