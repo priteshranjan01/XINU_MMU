@@ -23,7 +23,7 @@ extern	int	main();	/* address of user's main prog	*/
 extern	int	start();
 
 LOCAL		sysinit();
-int debug = FALSE;
+int debug = TRUE;
 /* Declarations of major kernel variables */
 struct	pentry	proctab[NPROC]; /* process table			*/
 int	nextproc;		/* next process slot to use in create	*/
