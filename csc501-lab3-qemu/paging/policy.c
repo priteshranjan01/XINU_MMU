@@ -9,9 +9,6 @@
  * srpolicy - set page replace policy 
  *-------------------------------------------------------------------------
  */
-int sc_head  = -1;
-int sc_tail = -1;
-
 SYSCALL srpolicy(int policy)
 {
 	  pr_debug = TRUE;

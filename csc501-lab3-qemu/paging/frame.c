@@ -291,7 +291,7 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 	int ct=0, pid;
 	unsigned long pdbr, pd_off, pt_off;
 	for(; ct <= NFRAMES; ct++)
-	{	print_
+	{	
 		pid = frm_tab[sc_head].fr_pid;
 		*vpno = frm_tab[sc_head].fr_vpno;
 		pdbr = ((proctab[pid].pdbr)>>12)<<12;  // Clear the 12 LSB bits.
