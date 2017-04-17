@@ -103,7 +103,7 @@ typedef struct{
 
 extern bs_map_t bsm_tab[];
 extern fr_map_t frm_tab[];
-extern int sc_head, sc_tail;  // Second Change PR policy queue head and tail
+extern int sc_head;  // Second Change PR policy queue head
 extern unsigned long gpt_base_address[] ;  // Keeps the base address of 4 global page tables.
 // Useful while initializing a process' page directory.
 
@@ -144,7 +144,12 @@ SYSCALL init_bsm();
 SYSCALL get_bsm(bsd_t* bsm_id);
 int is_bsm_available(bsd_t bsm_id, int pid, int * bs_shared);
 SYSCALL dummy_pfint(unsigned long cr2);
+
+int insert_into_sc_queue(int frame_no);
+int remove_from_sc_queue(int frame_no);
 void print_sc_queue();
+int test_sc_queue();
+
 
 #define FRM_UNMAPPED	0
 #define FRM_MAPPED	1

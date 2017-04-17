@@ -100,36 +100,13 @@ SYSCALL get_frame_for_PT(int *frame_number)
 	return SYSERR;
 }
 
-int insert_into_sc_queue(int frame_no)
-{
-	if (frame_no < 512 || frame_no > 512 + NFRAMES)
-	{
-		kprintf("\n Invalid Frame # %d Range of value is 512 to %d", frame_no, 512 + NFRAMES);
-		return SYSERR;
-	}
-	print_sc_queue();
-	kprintf("\nInserting frame_no # %d into queue", frame_no);
-	if(sc_head == -1)
-	{
-		sc_head = sc_tail = frame_no;
-		frm_tab[sc_head].next = sc_head;
-	}
-	else
-	{
-		frm_tab[frame_no].next = sc_head;
-		frm_tab[sc_tail].next = frame_no;
-		sc_tail = frame_no;
-	}
-	print_sc_queue();
-	return OK;
-}
 
 int clean_up_inverted_page_table(int pid)
 {
 	int p, q;
-	if(sc_head == -1 || sc_tail == -1)  return OK;
-	p = sc_head; q = sc_tail;
-	if(debug) kprintf("\nCleanup called for pid # %d, sc_head = %d, sc_tail= %d\n", pid, p, q);
+	if(sc_head == -1)  return OK;
+	p = sc_head;
+	if(debug) kprintf("\nCleanup called for pid # %d, sc_head = %d\n", pid, p);
 	do{
 		if(frm_tab[p].fr_pid == pid)
 		{
@@ -149,82 +126,11 @@ int clean_up_inverted_page_table(int pid)
 		}
 
        	kprintf("\nNew p %d q = %d",p,q);	
-	}while(p != sc_head);
+	}while(p != sc_head && p != SYSERR);
 	return OK;
 }
 
-int remove_from_sc_queue(int frame_no)
-{
-	if (frame_no < 512 || frame_no > 512 + NFRAMES)
-	{
-		kprintf("\n Invalid Frame # %d Range of value is 512 to %d", frame_no, 512 + NFRAMES);
-		return SYSERR;
-	}
-	int p, q;
-	if(sc_head == -1 || sc_tail == -1)
-	{
-		kprintf("\nERROR: SC head = %d ; SC_tail = %d", sc_head, sc_tail); 
-		sc_head = sc_tail = -1;
-		return SYSERR;
-	}
-	print_sc_queue();
-	kprintf("\nREMOVING frame_no # %d from queue", frame_no);
 
-	if(sc_head == sc_tail)
-	{
-		if(sc_head == frame_no)
-		{
-			sc_head = sc_tail = -1;
-			return -1;
-		}
-		else
-		{
-			kprintf("\nTried to remove a frame not in queue");
-			return SYSERR;
-		}
-	}
-	p = sc_head;	q = sc_tail;
-	while(p != frame_no)
-	{
-		q = p; 
-		p = frm_tab[p].next;
-		if (p == sc_head) 
-		{
-			kprintf("\nTried to remove a frame not in queue");
-			return SYSERR;
-		}
-	}
-	if(sc_head == p)
-	{
-		sc_head = frm_tab[sc_head].next;
-	}
-	if(sc_tail == p)
-	{
-		sc_tail = q;
-	}
-	
-	frm_tab[q].next = frm_tab[p].next;
-	int next = frm_tab[q].next;
-	frm_tab[p].next = -1;
-	print_sc_queue();
-	return next;
-}
-
-void print_sc_queue()
-{
-	int p = sc_head;
-	kprintf("\nsc_head = %d , sc_tail = %d\n", sc_head, sc_tail);
-	if(sc_head == -1 || sc_tail == -1)
-	{
-		sc_head = sc_tail = -1;
-		return;
-	}
-	do
-	{
-		kprintf(" %d ",p);
-		p = frm_tab[p].next;
-	}while(p != sc_head || p != -1);
-}
 
 SYSCALL get_frm(int* frame_number)
 {
@@ -310,7 +216,6 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 		{
 			if(debug) kprintf("\nThe page has been accessed");
 			(*pte).pte.pt_acc = 0;  // Set the accessed bit to 0 and move on.
-			sc_tail = sc_head;
 			sc_head = frm_tab[sc_head].next;
 		}
 		else
@@ -323,9 +228,7 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 			// TODO: Invalidate the TLB entry.
 			// Remove the frame from the queue.
 			// See if we need to remove from the queue. Currently, I think we don't.
-			sc_tail = sc_head;
 			sc_head = frm_tab[sc_head].next;
-			//frm_tab[sc_tail].next = sc_head;
 			return OK;
 		}
 	}
