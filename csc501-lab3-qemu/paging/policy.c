@@ -36,7 +36,7 @@ SYSCALL grpolicy()
 
 int insert_into_sc_queue(int frame_no)
 {
-	STATWORD PS;
+	STATWORD ps;
 	disable(ps);
 	if (frame_no < 512 || frame_no > 512 + NFRAMES)
 	{
@@ -67,7 +67,7 @@ int insert_into_sc_queue(int frame_no)
 	}
 	// Insert
 	frm_tab[q].next = frame_no;
-	frm_tab[frame_no] = p;
+	frm_tab[frame_no].next = p;
 	restore(ps);
 	return OK;
 }
@@ -126,7 +126,7 @@ int remove_from_sc_queue(int frame_no)
 	{
 		return SYSERR;
 	}
-	STATWORD PS;
+	STATWORD ps;
 	disable(ps);
 	
 	// At this point frame_no is in the queue
