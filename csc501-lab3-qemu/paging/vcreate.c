@@ -63,8 +63,8 @@ SYSCALL vcreate(procaddr,ssize,hsize,priority,name,nargs,args)
 	proctab[pid].vhpnpages = hsize;
 	// Now is the virtual heap allocation part.
 	proctab[pid].vmemlist = (struct mblock*)getmem(sizeof(struct mblock));
-	proctab[pid].vmemlist->mnext = (struct mblock*)(proctab[pid].vhpno * NBPG);
-	proctab[pid].vmemlist->mlen = hsize * NBPG;
+	proctab[pid].vmemlist->mnext = (struct mblock*)NULL;  // Initialize to to a value when vgetmem is called for the first time. 
+	proctab[pid].vmemlist->mlen = NULL;
 
 //	struct mblock * mptr = proctab[pid].vmemlist->mnext;
 //	mptr->mnext = (struct mblock*)NULL;
