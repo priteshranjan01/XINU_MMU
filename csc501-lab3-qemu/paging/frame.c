@@ -126,6 +126,7 @@ int clean_up_inverted_page_table(int pid)
 	int p, q;
 	if(sc_head == -1 || sc_tail == -1)  return OK;
 	p = sc_head; q = sc_tail;
+	if(debug) kprintf("\nCleanup called for pid # %d, sc_head = %d, sc_tail= %d\n", pid, p, q);
 	do{
 		if(frm_tab[p].fr_pid == pid)
 		{
@@ -135,12 +136,16 @@ int clean_up_inverted_page_table(int pid)
 		  frm_tab[p].fr_refcnt = -1;
 		  frm_tab[p].fr_type = FR_PAGE;
 		  frm_tab[p].fr_dirty = FALSE;
+
+		 free_frm(p+ENTRIES_PER_PAGE);
 		  p = remove_from_sc_queue(p);
 		}
 		else
 		{	q = p;
 			p = frm_tab[p].next;
 		}
+
+       	kprintf("\nNew p %d q = %d",p,q);	
 	}while(p != sc_head);
 	return OK;
 }
@@ -322,9 +327,10 @@ SYSCALL free_frm(int frame_no)
   int i;
   pt_t * addr = (pt_t*)(frame_no * NBPG);
   pd_t * addr1 = (pt_t*)(frame_no * NBPG);
+  if(debug) kprintf("\nfree_frm called with frame_no # %d",frame_no);
   frame_no -= ENTRIES_PER_PAGE;
   if(frame_no< 4+NPROC)
-  {		if(debug) kprintf("4 Frames for the global page tables and PD can't be freed.");
+  {		if(debug) kprintf("\n4 Frames for the global page tables and PD can't be freed.");
 		//DO nothing, Keep silent. return OK;
   }
   else if (frame_no >= 4+NPROC && frame_no < FRAME0-ENTRIES_PER_PAGE)  // 54 to 511
