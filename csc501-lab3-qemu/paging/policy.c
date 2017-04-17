@@ -134,6 +134,8 @@ int remove_from_sc_queue(int frame_no)
 	{	// There is only one node in queue and that is to be removed.
 		frm_tab[sc_head].next = -1;
 		sc_head = -1;
+		restore(ps);
+		return -1;  // This will indicate that the queue is now empty
 	}
 	
 	// At this point there are more than 1 node in the queue.
