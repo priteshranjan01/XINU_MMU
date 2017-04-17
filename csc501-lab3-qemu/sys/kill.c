@@ -42,8 +42,8 @@ SYSCALL kill(int pid)
 	freestk(pptr->pbase, pptr->pstklen);
  if(pptr->store != -1)
 	{
-	//	free_bsm(pid);
-	//	clean_up_inverted_page_table(pid) ;
+		free_bsm(pid);
+		clean_up_inverted_page_table(pid) ;
 	}
 	switch (pptr->pstate) {
 
