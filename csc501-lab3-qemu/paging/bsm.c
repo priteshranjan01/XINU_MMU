@@ -106,9 +106,10 @@ SYSCALL free_bsm(int pid)
  */
 SYSCALL bsm_lookup(int pid, unsigned long vaddr, int* store, int* pageth)
 {
-	int i, x;
+	int i;
 	// NOTE: Disable interrupts before calling this method.
 	unsigned long vpno = vaddr >> 12;
+	unsigned long x=0;
 	for(i=0; i<BS_COUNT; i++)
 	{
 		if(proctab[pid].bs_map[i].bs_status == BSM_MAPPED)

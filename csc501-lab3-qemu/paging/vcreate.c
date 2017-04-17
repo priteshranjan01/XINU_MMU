@@ -57,7 +57,6 @@ SYSCALL vcreate(procaddr,ssize,hsize,priority,name,nargs,args)
 		kprintf("\n bsm_map failed");
 		restore(ps); return SYSERR;
 	}
-	
 	proctab[pid].store = bs_id;
 	proctab[pid].vhpno = 4096;
 	proctab[pid].vhpnpages = hsize;
@@ -65,6 +64,7 @@ SYSCALL vcreate(procaddr,ssize,hsize,priority,name,nargs,args)
 	proctab[pid].vmemlist = (struct mblock*)getmem(sizeof(struct mblock));
 	proctab[pid].vmemlist->mnext = (struct mblock*)NULL;  // Initialize to to a value when vgetmem is called for the first time. 
 	proctab[pid].vmemlist->mlen = NULL;
+	if(debug) kprintf("\n pid %d created. BS= %d, hsize = %d ", pid, bs_id, hsize);
 
 //	struct mblock * mptr = proctab[pid].vmemlist->mnext;
 //	mptr->mnext = (struct mblock*)NULL;

@@ -173,11 +173,21 @@ int get_victim_frame(int * frame_number)
 		default: /* Fall Through */
 		case SC: 
 			status = get_SC_policy_victim(frame_number, &is_dirty, &vpno);
+			if(status == SYSERR)
+			{
+				kprintf("\n get_SC_policy_victim returned SYSERR");
+				return status;
+			}
 			if(is_dirty)
 			{
-				// Write to backing store.
-				bsm_lookup(currpid, vpno<<12, &store, &pageth);
-				if(debug) kprintf("\ncurrpid %d, store %d, pageth %d",currpid, store, pageth);
+				if(debug) kprintf("\nDirty bit was set Write to backing store. ");
+				status = bsm_lookup(currpid, vpno<<12, &store, &pageth);
+				if(debug) kprintf("\ncurrpid %d, store %d, pageth %d vpno=0x%08x",currpid, store, pageth, vpno);
+				if(status == SYSERR)
+				{
+					kprintf("\nBsm lookup failed while trying to get victim frame");
+					return status;
+				}
 				write_bs((char *)((*frame_number)<<12), store, pageth);
 			}
 	}
@@ -198,12 +208,17 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 	unsigned long pdbr, pd_off, pt_off;
 	for(; ct <= NFRAMES; ct++)
 	{	
+		if(sc_head == -1)
+		{
+			kprintf("\nget_SC_policy_victim: SC queue is not set sc_head %d",sc_head);
+			return SYSERR;
+		}
 		pid = frm_tab[sc_head].fr_pid;
 		*vpno = frm_tab[sc_head].fr_vpno;
 		pdbr = ((proctab[pid].pdbr)>>12)<<12;  // Clear the 12 LSB bits.
 		pd_off = ((*vpno) <<12) >> 22;  // Double check this. vpno shall have only 20 LSB bits.
 		pt_off = ((*vpno) << 22) >> 22; 
-		if(debug) kprintf("\npdbr = 0x%x, pd_off 0x%x pt_off 0x%x ",pdbr,pd_off,pt_off);
+		if(debug) kprintf("\nDouble Check these values: pdbr = 0x%x, vpno = 0x%08x pd_off 0x%x pt_off 0x%x ",pdbr,*vpno, pd_off,pt_off);
 		pd_off = pd_off << 2;  // Multiply by 4
 		pt_off = pt_off << 2;
 		pd_t *pde = (pd_t*)(pdbr + pd_off);
