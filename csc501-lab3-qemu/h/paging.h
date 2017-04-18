@@ -99,7 +99,7 @@ typedef struct{
   int fr_type;				/* FR_DIR, FR_TBL, FR_PAGE	*/
   int fr_dirty;				/* If the frame in the memory has been written into */
   int next;					/* For use in SC queue */
-  unsigned ctr;				/* For use in AGING PR policy */
+  unsigned char ctr:8;				/* For use in AGING PR policy */
 }fr_map_t;
 
 extern bs_map_t bsm_tab[];
@@ -145,6 +145,9 @@ SYSCALL init_bsm();
 SYSCALL get_bsm(bsd_t* bsm_id);
 int is_bsm_available(bsd_t bsm_id, int pid, int * bs_shared);
 SYSCALL dummy_pfint(unsigned long cr2);
+
+SYSCALL srpolicy(int policy);
+SYSCALL grpolicy();
 
 int insert_into_sc_queue(int frame_no);
 int remove_from_sc_queue(int frame_no);

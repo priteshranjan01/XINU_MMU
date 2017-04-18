@@ -23,7 +23,7 @@ SYSCALL init_frm()
 	  frm_tab[i].fr_type = FR_TBL;
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;
-	  frm_tab[i].ctr = 0UL;
+	  frm_tab[i].ctr = 0;
   }
   for(i=4; i< 4+NPROC; i++)  // Loop from i = 4 to 53
   {		// Next NPROC frames for PD's of processes.
@@ -34,7 +34,7 @@ SYSCALL init_frm()
 	  frm_tab[i].fr_type = FR_DIR;
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;
-	  frm_tab[i].ctr = 0UL;
+	  frm_tab[i].ctr = 0;
   }
   for (i=4+NPROC; i < FRAME0-ENTRIES_PER_PAGE ; i++)  // Loop from 54 to 511
   {	// Frames for page tables.
@@ -45,7 +45,7 @@ SYSCALL init_frm()
 	  frm_tab[i].fr_type = FR_TBL;
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;
-	  frm_tab[i].ctr = 0UL;
+	  frm_tab[i].ctr = 0;
 	  //TODO: Add lines fr_map_t structure is changed
   }
   for(; i< FRAME0 + NFRAMES - ENTRIES_PER_PAGE; i++)  //Loop from 512 to 1024
@@ -57,7 +57,7 @@ SYSCALL init_frm()
 	  frm_tab[i].fr_type = FR_PAGE;
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;  
-	  frm_tab[i].ctr = 0UL;
+	  frm_tab[i].ctr = 0;
 	}
 
   restore(ps);
@@ -162,7 +162,7 @@ SYSCALL get_frm(int* frame_number)
 			// case AGING:
 			// default: /* Fall Through */
 			// case SC: 
-				frm_tab[i].ctr = 0UL;		/* Initialize the ctr used by AGING PR policy to zero */
+				frm_tab[i].ctr = 0;		/* Initialize the ctr used by AGING PR policy to zero */
 				status = insert_into_sc_queue(i);  /* Expects a value in range 512 to 1023 both inclusive*/
 		
 		// }
@@ -193,7 +193,7 @@ int get_victim_frame(int * frame_number)
 			kprintf("\n PR policy %d returned SYSERR", grpolicy());
 			return status;
 	}
-	if(debug) kprintf("\n frame_number %d, is_dirty= %d, vpno= 0x%08x, pid= 0x%08x",frame_number, is_dirty, vpno, pid);
+	if(debug) kprintf("\n frame_number %d, is_dirty= %d, vpno= 0x%08x, pid= %d",*frame_number, is_dirty, vpno, pid);
 	if(is_dirty)
 	{
 		if(debug) kprintf("\nDirty bit was set Write to backing store. ");
@@ -206,7 +206,7 @@ int get_victim_frame(int * frame_number)
 		else
 		{write_bs((char *)((*frame_number)<<12), store, pageth);}
 	}
- if(pr_debug) kprintf("\nSwapped out Frame number # %d",*frame_number);
+ if(pr_debug) kprintf("\nSwapped out Frame number # %d\n",*frame_number);
  return OK;
 }
 
@@ -214,8 +214,9 @@ int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * 
 {  // Sorry, but I had to duplicate the code.
 	int ct=0, p;
 	unsigned long pdbr, pd_off, pt_off;
-	unsigned long min_ctr= 0xffffffff;
-	unsigned long *vpno ;
+	unsigned char min_ctr= 0xff;
+ kprintf("\nmin_Ctr %d", min_ctr);
+	unsigned long *vpno , *pid;
 	for(p = sc_head; ct <= NFRAMES; ct++)
 	{	
 		if(sc_head == -1)
@@ -241,32 +242,32 @@ int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * 
 		frm_tab[p].ctr = frm_tab[p].ctr >> 1 ;
 		if((*pte).pte.pt_acc == 1)
 		{
-			SET_BIT(frm_tab[p].ctr, 31);
-		}
-		else
-		{
-			RESET_BIT(frm_tab[p].ctr, 31);
+			SET_BIT(frm_tab[p].ctr, 7);
+      kprintf("\nfrm_tab[p].ctr = %d", frm_tab[p].ctr);
+			(*pte).pte.pt_acc = 0;  // Set the accessed bit to 0
 		}
 		if(frm_tab[p].ctr < min_ctr)
 		{
 			min_ctr = frm_tab[p].ctr;
-			*frame_number = p + ENTRIES_PER_PAGE;
-			*is_dirty = (*pte).pte.pt_dirty;
-			*vpno1 = *vpno;
-			*pid1 = *pid;
+			(*frame_number) = (p + ENTRIES_PER_PAGE);
+			(*is_dirty) = (*pte).pte.pt_dirty;
+			(*vpno1) = frm_tab[p].fr_vpno;
+			(*pid1) = frm_tab[p].fr_pid;
 		}
 		p = frm_tab[p].next;
 		if(p == sc_head)
 			break;
 	}
-	if(ct > NFRAMES);
+	if(ct > NFRAMES)
 	{
-		kprintf("The queue has not been set up properly");
+		kprintf("The queue has not been set up properly ct = %d  NFRAMES= %d", ct, NFRAMES);
 		return SYSERR;
 	}
 	// Move the sc_head one step forward to give it the illusion of removing and inserting the frame.
 	sc_head = frm_tab[sc_head].next;
-	frm_tab[(*frame_number-ENTRIES_PER_PAGE)].ctr =0UL;
+	frm_tab[(*frame_number-ENTRIES_PER_PAGE)].ctr =0;
+ 	kprintf("\n frame_number %d, is_dirty= %d, vpno= 0x%08x, pid= %d min_ctr = %d",*frame_number, *is_dirty, *vpno1, *pid1, min_ctr);
+
 	return OK;
 }
 
@@ -360,7 +361,7 @@ SYSCALL free_frm(int frame_no)
 	  frm_tab[frame_no].fr_refcnt = -1;
 	  frm_tab[frame_no].fr_type = FR_TBL;
 	  frm_tab[frame_no].fr_dirty = FALSE;
-	  frm_tab[frame_no].ctr = 0UL;
+	  frm_tab[frame_no].ctr = 0;
 	  //frm_tab[frame_no].next = -1;
 	  //Invalidate the entries in the PT this frame holds.
 	  for(i=0; i < ENTRIES_PER_PAGE; i++)
@@ -376,7 +377,7 @@ SYSCALL free_frm(int frame_no)
 	  frm_tab[frame_no].fr_refcnt = -1;
 	  frm_tab[frame_no].fr_type = FR_PAGE;
 	  frm_tab[frame_no].fr_dirty = FALSE;
-	  frm_tab[frame_no].ctr = 0UL;
+	  frm_tab[frame_no].ctr = 0;
 	  //frm_tab[frame_no].next = -1;  
 	}
 	else
