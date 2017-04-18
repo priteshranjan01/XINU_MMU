@@ -88,4 +88,5 @@ int main() {
 	pid1 = create(proc1_test3, 2000, 20, "proc1_test3", 0, NULL);
 	resume(pid1);
 	sleep(3);
+        shutdown();
 }
