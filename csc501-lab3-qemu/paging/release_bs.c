@@ -17,6 +17,8 @@ https://classic.wolfware.ncsu.edu/wrap-bin/mesgboard/csc:501::001:1:2017?task=ST
 	   return SYSERR;
    int i, ct;
    STATWORD ps;
+   if(debug) kprintf("\nRelease BS called for pid= %d, bs_id = %d", pid, bs_id);
+
    disable(ps);
     proctab[pid].bs_map[bs_id].bs_status = BSM_UNMAPPED;
 	proctab[pid].bs_map[bs_id].bs_vpno = -1;

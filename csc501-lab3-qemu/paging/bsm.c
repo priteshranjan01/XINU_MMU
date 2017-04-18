@@ -208,7 +208,6 @@ SYSCALL bsm_unmap(int pid, int vpno, int flag)
 	int store, pageth, i;
 	if(bsm_lookup(pid, vpno<<12, &store, &pageth) == OK)
 	{
-		proctab[pid].bs_map[store].bs_status = BSM_UNMAPPED;
 		proctab[pid].bs_map[store].bs_vpno = -1;
 		proctab[pid].bs_map[store].bs_npages = -1;
 		proctab[pid].bs_map[store].shared = TRUE;

@@ -34,6 +34,9 @@ SYSCALL	vfreemem(block, size)
 	// Check if block doesn't lie in free memory region
 	if((top > (unsigned)block && q != memlist) || (p!= NULL && (size+(unsigned)block) > (unsigned)p))
 	{
+		kprintf("\nTrying to free a block in free region");
+		kprintf("\n top = 0x%08x , block= 0x%08x , (block+size) = 0x%08x, p = 0x%08x",
+		top, (unsigned)block, (size+(unsigned)block), (unsigned)p);
 		restore(ps);
 		return SYSERR;
 	}
