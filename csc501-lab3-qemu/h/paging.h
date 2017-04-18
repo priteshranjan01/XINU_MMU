@@ -141,7 +141,7 @@ extern unsigned long gpt_base_address[] ;  // Keeps the base address of 4 global
 /* paging.c */
 SYSCALL initialize_4_global_page_tables(int frame_no);
 pd_t* initialize_page_directory(int frame_no);
-SYSCALL update_inverted_pt_entry(int frame_no, int status, int vpno, int type)
+SYSCALL update_inverted_pt_entry(int frame_no, int status, int vpno, int type);
 
 
 /* frame.c */
@@ -181,7 +181,7 @@ SYSCALL bsm_lookup(int pid, unsigned long vaddr, int* store, int* pageth);
 void pfintr();
 
 /* pfint.c */
-SYSCALL pfint()
+SYSCALL pfint();
 SYSCALL dummy_pfint(unsigned long cr2);
 
 /* policy.c */

@@ -244,7 +244,7 @@ int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * 
 		if((*pte).pte.pt_acc == 1)
 		{
 			SET_BIT(frm_tab[p].ctr, 7);
-      kprintf("\nfrm_tab[p].ctr = %d", frm_tab[p].ctr);
+      if (debug) kprintf("\nfrm_tab[p].ctr = %d", frm_tab[p].ctr);
 			(*pte).pte.pt_acc = 0;  // Set the accessed bit to 0
 		}
 		if(frm_tab[p].ctr < min_ctr)

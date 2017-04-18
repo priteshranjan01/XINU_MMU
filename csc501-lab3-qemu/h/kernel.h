@@ -119,7 +119,7 @@ WORD *vgetmem(unsigned nbytes);
 
 
 SYSCALL	freemem(struct mblock *block, unsigned size);
-SYSCALL	vfreemem(struct mblock *block, unsigned size)
+SYSCALL	vfreemem(struct mblock *block, unsigned size);
 
 INTPROC	wakeup();
 
