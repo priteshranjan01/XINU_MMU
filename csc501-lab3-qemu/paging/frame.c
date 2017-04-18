@@ -266,6 +266,7 @@ int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * 
 	}
 	// Move the sc_head one step forward to give it the illusion of removing and inserting the frame.
 	sc_head = frm_tab[sc_head].next;
+	frm_tab[(*frame_number-ENTRIES_PER_PAGE)].ctr =0UL;
 	return OK;
 }
 
