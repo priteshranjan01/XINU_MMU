@@ -20,7 +20,7 @@ SYSCALL	vfreemem(block, size)
 	unsigned top;
 	int pid = currpid;
 	
-	if(size == 0 || proctab[pid].vmemlist->mnext == (struct mblock*)NULL)
+	if((size == 0) || (proctab[pid].vmemlist->mnext == (struct mblock*)NULL))
 	{
 		if(debug) kprintf("\n size = %d , vmemlist = 0x%08x ",size, proctab[pid].vmemlist->mnext);
 		return SYSERR;
