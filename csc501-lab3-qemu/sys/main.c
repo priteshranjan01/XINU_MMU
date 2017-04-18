@@ -32,12 +32,12 @@ void proc1_test1(char *msg, int lck) {
 
 	for (i = 0; i < 26; i++) {
 		kprintf("0x%08x: %c\n", addr + i * NBPG, *(addr + i * NBPG));
-   
+	}
   kprintf("\nNow there should be no page faults");
   for (i = 0; i < 26; i++) {
-		kprintf("0x%08x: %c\n", addr + i * NBPG, *(addr + 25 * NBPG));}
+		kprintf("0x%08x: %c\n", addr + i * NBPG, *(addr + 25 * NBPG));
+		}
    
-	}
 
 
 	xmunmap(PROC1_VPNO);
