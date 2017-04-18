@@ -50,23 +50,21 @@ void proc1_test1(char *msg, int lck) {
 void proc1_test2(char *msg, int lck) {
 	
 int pid = currpid;
-int *x;
+int *x, i;
 
 	kprintf("ready to allocate heap space\n");
 	x = vgetmem(1024);
 	kprintf("heap allocated at %x\n", x);
-	kprintf("ready to allocate heap space\n");
-	struct mblock * mptr = proctab[pid].vmemlist->mnext;
-	mptr->mnext = (struct mblock*)NULL;
-	mptr->mlen = 100 * NBPG;
-// I hope i didn't miss anything. Let's do a Litmus test
-	kprintf("\npid = %d \t vmemlist->mnext 0x%08x  \t vmemlist->mlen %d",pid, (unsigned)(proctab[pid].vmemlist->mnext), proctab[pid].vmemlist->mlen);
-	kprintf("\n mptr 0x%08x  size = %d ",(unsigned)mptr, mptr->mlen);
-
-*x = 100;
-	*(x + 1) = 200;
-	kprintf("heap variable: %d %d\n", *x, *(x + 1));
-vfreemem(x, 1024);
+	for(i=0; i< 1024; i++)
+ {
+   *(x+i) = i;
+ }
+  for(i=0; i < 1024; i++)
+  {
+  	kprintf(" %d", *(x + i));
+  }
+  
+  vfreemem(x, 1024);
 
 kprintf("If now you fail then kill is to blame");
 
