@@ -114,9 +114,10 @@ int clean_up_inverted_page_table(int pid)
 	int queue[NFRAMES];
 	
 	if(sc_head == -1)  return OK;
+	p = sc_head;
+
 	if(debug) kprintf("\nCleanup called for pid # %d, sc_head = %d\n", pid, p);
 	
-	p = sc_head;
 	for(i=0; i<NFRAMES; i++)
 	{
 		queue[i] = p;
@@ -215,7 +216,7 @@ int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * 
 	int ct=0, p;
 	unsigned long pdbr, pd_off, pt_off;
 	unsigned char min_ctr= 0xff;
- kprintf("\nmin_Ctr %d", min_ctr);
+	if(debug) kprintf("\nmin_Ctr %d", min_ctr);
 	unsigned long *vpno , *pid;
 	for(p = sc_head; ct <= NFRAMES; ct++)
 	{	
@@ -266,7 +267,7 @@ int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * 
 	// Move the sc_head one step forward to give it the illusion of removing and inserting the frame.
 	sc_head = frm_tab[sc_head].next;
 	frm_tab[(*frame_number-ENTRIES_PER_PAGE)].ctr =0;
- 	kprintf("\n frame_number %d, is_dirty= %d, vpno= 0x%08x, pid= %d min_ctr = %d",*frame_number, *is_dirty, *vpno1, *pid1, min_ctr);
+ 	if(debug) kprintf("\n frame_number %d, is_dirty= %d, vpno= 0x%08x, pid= %d min_ctr = %d",*frame_number, *is_dirty, *vpno1, *pid1, min_ctr);
 
 	return OK;
 }
@@ -346,7 +347,7 @@ SYSCALL free_frm(int frame_no)
   disable(ps);
   int i;
   pt_t * addr = (pt_t*)(frame_no * NBPG);
-  pd_t * addr1 = (pt_t*)(frame_no * NBPG);
+
   if(debug) kprintf("\nfree_frm called with frame_no # %d",frame_no);
   frame_no -= ENTRIES_PER_PAGE;
   if(frame_no< 4+NPROC)

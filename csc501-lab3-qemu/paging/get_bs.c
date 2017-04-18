@@ -28,7 +28,7 @@ int reserve_bs(int pid, bsd_t bs_id, unsigned int npages, int shared)
 		return SYSERR;
 	}
 
-	int i;
+	int i=0;
 	if(bs_shared == TRUE)
 	{// If pid already had an entry then, simply update the entry.
 		for (i=0; i< MAX_PROCESS_PER_BS; i++)

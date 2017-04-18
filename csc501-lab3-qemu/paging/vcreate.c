@@ -30,7 +30,8 @@ SYSCALL vcreate(procaddr,ssize,hsize,priority,name,nargs,args)
 {
 //	kprintf("To be implemented!\n");
 	int pid = create(procaddr, ssize, priority, name, nargs, args);
-	int status, bs_id;
+	int status; 
+	bsd_t bs_id;
 	STATWORD ps;
 	disable(ps);
 

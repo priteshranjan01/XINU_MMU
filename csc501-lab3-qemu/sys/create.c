@@ -75,7 +75,7 @@ SYSCALL create(procaddr,ssize,priority,name,nargs,args)
 	addr = initialize_page_directory(frame_no);
 	if (debug) kprintf("\nProcess PID %d , PD initialized status = %d, adddress= 0x%x",pid, status, addr);
 
-	pptr->pdbr = addr;
+	pptr->pdbr = (unsigned long)addr;
 	pptr->pdbr = ((pptr->pdbr)>>12)<<12;
 	pptr->store = -1;
 	/* Business as usual */

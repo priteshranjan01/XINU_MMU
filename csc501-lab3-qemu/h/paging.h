@@ -20,14 +20,39 @@ If CR0.PG=1 and CR4.PAE=0 then 32 bit paging. THIS IS WHAT we are studying.
 */
 #ifndef _PAGING_H_
 #define _PAGING_H_
-typedef unsigned int	 bsd_t;
+
 #define MAX_PROCESS_PER_BS 5
-extern int pr_debug;
-extern int page_replace_policy;
+#define GET_PD_OFFSET(vaddr) ((vaddr >>22) << 2)
+#define GET_PT_OFFSET(vaddr) (((vaddr << 10) >> 22) << 2)
+#define GET_PG_OFFSET(vaddr) ((vaddr << 20) >> 20)
 
-extern unsigned long pferrcode;
+#define NBPG		4096	/* number of bytes per page	*/
+#define ENTRIES_PER_PAGE 		1024
+#define FRAME0		1536	/* zero-th frame. I have reserved frames [1024 - 1535] for Page Directories
+						and page table entries. The four global page tables[1024-1027], Null process's 
+						page directory[1028] and the rest [1029-1078] for remaining (49) process' page directories
+						Frame 1078-1535 is for other page tables.*/
+#define NFRAMES 	15	/* number of available frames. NEVER SET THIS TO MORE THAN 512.*/
+
+#define BSM_UNMAPPED	0
+#define BSM_MAPPED	1
+#define FRM_UNMAPPED	0
+#define FRM_MAPPED	1
+
+#define FR_PAGE		0
+#define FR_TBL		1
+#define FR_DIR		2
+
+#define SC 3
+#define AGING 4
+
+#define BACKING_STORE_BASE	0x00800000
+#define BACKING_STORE_UNIT_SIZE 0x00100000
+
+
+typedef unsigned int	 bsd_t;
+
 /* Structure for a page directory entry */
-
 typedef struct {
 
   unsigned int pd_pres	: 1;		/* page table present?		*/
@@ -47,8 +72,8 @@ typedef union {
 	pd_struct pde;			/* page directory entry */
 	unsigned long dummy;	/* 32 bit value for one line initialization */
 }pd_t;
-/* Structure for a page table entry */
 
+/* Structure for a page table entry */
 typedef struct {
 
   unsigned int pt_pres	: 1;		/* page is present?		*/
@@ -102,70 +127,73 @@ typedef struct{
   unsigned char ctr:8;				/* For use in AGING PR policy */
 }fr_map_t;
 
+extern int 		pr_debug;
+extern int 		page_replace_policy;
+extern int 		sc_head;  // Second Change PR policy queue head
 extern bs_map_t bsm_tab[];
 extern fr_map_t frm_tab[];
-extern int sc_head;  // Second Change PR policy queue head
+extern unsigned long pferrcode;
 extern unsigned long gpt_base_address[] ;  // Keeps the base address of 4 global page tables.
 // Useful while initializing a process' page directory.
 
 /* Prototypes for required API calls */
-SYSCALL xmmap(int, bsd_t, int);
-SYSCALL xunmap(int);
 
+/* paging.c */
 SYSCALL initialize_4_global_page_tables(int frame_no);
 pd_t* initialize_page_directory(int frame_no);
+SYSCALL update_inverted_pt_entry(int frame_no, int status, int vpno, int type)
 
+
+/* frame.c */
+SYSCALL init_frm();
+SYSCALL get_frame_for_PD(int pid, int * frame_number);
+SYSCALL get_frame_for_PT(int *frame_number);
+SYSCALL clean_up_inverted_page_table(int pid);
+SYSCALL free_frm(int frame_no);
+SYSCALL get_victim_frame(int * frame_number);
+SYSCALL get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno1,int *pid1);
+SYSCALL get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno,int *pid);
+SYSCALL get_frm(int* frame_number);
+
+
+/* get_bs.c */
+SYSCALL get_bs(bsd_t, unsigned int npages);
+SYSCALL reserve_bs(int pid, bsd_t bs_id, unsigned int npages, int shared);
+
+/* release_bs.c */
+SYSCALL release_bs(bsd_t);
+SYSCALL __release_bs__(int pid, bsd_t bs_id);
 
 /* given calls for dealing with backing store */
-
-int get_bs(bsd_t, unsigned int npages);
-int reserve_bs(int pid, bsd_t bs_id, unsigned int npages, int shared);
-
-SYSCALL release_bs(bsd_t);
 SYSCALL read_bs(char *, bsd_t, int);
 SYSCALL write_bs(char *, bsd_t, int);
-void pfintr();
 
-#define GET_PD_OFFSET(vaddr) ((vaddr >>22) << 2)
-#define GET_PT_OFFSET(vaddr) (((vaddr << 10) >> 22) << 2)
-#define GET_PG_OFFSET(vaddr) ((vaddr << 20) >> 20)
-
-#define NBPG		4096	/* number of bytes per page	*/
-#define ENTRIES_PER_PAGE 		1024
-#define FRAME0		1536	/* zero-th frame. I have reserved frames [1024 - 1535] for Page Directories
-						and page table entries. The four global page tables[1024-1027], Null process's 
-						page directory[1028] and the rest [1029-1078] for remaining (49) process' page directories
-						Frame 1078-1535 is for other page tables.*/
-#define NFRAMES 	15	/* number of available frames. NEVER SET THIS TO MORE THAN 512.*/
-
-#define BSM_UNMAPPED	0
-#define BSM_MAPPED	1
-
+/* bsm.c */
 SYSCALL init_bsm();
 SYSCALL get_bsm(bsd_t* bsm_id);
-int is_bsm_available(bsd_t bsm_id, int pid, int * bs_shared);
+SYSCALL free_bsm(int pid);
+SYSCALL bsm_map(int pid, int vpno, bsd_t bs_id, int npages);
+SYSCALL bsm_unmap(int pid, int vpno, int flag);
+SYSCALL is_bsm_available(bsd_t bsm_id, int pid, int * bs_shared);
+SYSCALL bsm_lookup(int pid, unsigned long vaddr, int* store, int* pageth);
+
+/* pfintr.S  Interrupt hander for INT 14 page fault */
+void pfintr();
+
+/* pfint.c */
+SYSCALL pfint()
 SYSCALL dummy_pfint(unsigned long cr2);
 
+/* policy.c */
 SYSCALL srpolicy(int policy);
 SYSCALL grpolicy();
-
-int insert_into_sc_queue(int frame_no);
-int remove_from_sc_queue(int frame_no);
+SYSCALL insert_into_sc_queue(int frame_no);
+SYSCALL remove_from_sc_queue(int frame_no);
+SYSCALL test_sc_queue();
 void print_sc_queue();
-int test_sc_queue();
 
-
-#define FRM_UNMAPPED	0
-#define FRM_MAPPED	1
-
-#define FR_PAGE		0
-#define FR_TBL		1
-#define FR_DIR		2
-
-#define SC 3
-#define AGING 4
-
-#define BACKING_STORE_BASE	0x00800000
-#define BACKING_STORE_UNIT_SIZE 0x00100000
+/* xm.c */
+SYSCALL xmmap(int virtpage, bsd_t source, int npages);
+SYSCALL xmunmap(int virtpage);
 
 #endif

@@ -115,7 +115,11 @@ long sizmem();
 
 WORD *getstk(unsigned int nbytes);
 WORD *getmem(unsigned nbytes);
+WORD *vgetmem(unsigned nbytes);
+
+
 SYSCALL	freemem(struct mblock *block, unsigned size);
+SYSCALL	vfreemem(struct mblock *block, unsigned size)
 
 INTPROC	wakeup();
 
@@ -160,10 +164,20 @@ SYSCALL sreset(int sem, int count);
 SYSCALL stacktrace(int pid);
 SYSCALL	suspend(int pid);
 SYSCALL	unsleep(int pid);
+SYSCALL vcreate(int *procaddr,int ssize,int hsize, int priority, char *name, int nargs, long args);
 SYSCALL	wait(int sem);
 
 int strtclk();
 int stopclk();
+/*control register functions */
+unsigned long read_cr0(void);
+unsigned long read_cr2(void);
+unsigned long read_cr3(void);
+unsigned long read_cr4(void);
+void write_cr0(unsigned long n);
+void write_cr3(unsigned long n);
+void write_cr4(unsigned long n);
+void enable_paging();
 
 /* Device I/O functions */
 

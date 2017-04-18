@@ -98,6 +98,7 @@ SYSCALL free_bsm(int pid)
 			__release_bs__(pid, i);
 		}
 	}
+	return OK;
 }
 
 /*-------------------------------------------------------------------------
@@ -190,11 +191,8 @@ SYSCALL bsm_map(int pid, int vpno, bsd_t bs_id, int npages)
 		kprintf("\nBSM_MAP failed. MAX_PROCESS_PER_BS have already mapped to this Backing store");
 		return SYSERR;
 	}
-	else if(bsm_tab[bs_id].bs_status == BSM_UNMAPPED)
-	{
-		kprintf("\nFirst call get_bs to gain rights on BS # %d", bs_id);
-		return SYSERR;
-	}
+	kprintf("\nFirst call get_bs to gain rights on BS # %d", bs_id);
+	return SYSERR;
 }
 
 /*-------------------------------------------------------------------------
@@ -225,11 +223,8 @@ SYSCALL bsm_unmap(int pid, int vpno, int flag)
 			}
 		}
 	}
-	else
-	{
-		kprintf("\nbsm_lookup failed while doing a bsm_unmap ");
-		return SYSERR;
-	}
+	kprintf("\nbsm_lookup failed while doing a bsm_unmap ");
+	return SYSERR;
 }
 
 void print_backing_store()

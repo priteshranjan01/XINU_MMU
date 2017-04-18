@@ -32,7 +32,7 @@ WORD	*vgetmem(nbytes)
 	}
 	if(nbytes == 0)
 	{
-		restore(ps); return SYSERR;
+		restore(ps); return ((WORD*) SYSERR );
 	}
 	nbytes = (unsigned int)roundmb(nbytes);
 	memlist = proctab[pid].vmemlist;
@@ -58,5 +58,5 @@ WORD	*vgetmem(nbytes)
 	}
 	
 	restore(ps);
-	return((WORD*) SYSERR );
+	return ((WORD*) SYSERR );
 }

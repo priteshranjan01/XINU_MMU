@@ -93,7 +93,7 @@ int is_present_in_sc_queue(int frame_no)
 	{ restore(ps); return TRUE;}
 
 	int p = frm_tab[sc_head].next;
-	int ct;
+	int ct=0;
 	while(p != sc_head && p != frame_no && ct <= 512)
 	{
 		p = frm_tab[p].next;
@@ -197,4 +197,5 @@ int test_sc_queue()
 	kprintf("\n %d",remove_from_sc_queue(113));
 	print_sc_queue();
 	print_sc_queue();
+	return OK;
 }
