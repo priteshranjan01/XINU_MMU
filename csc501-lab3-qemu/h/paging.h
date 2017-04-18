@@ -99,6 +99,7 @@ typedef struct{
   int fr_type;				/* FR_DIR, FR_TBL, FR_PAGE	*/
   int fr_dirty;				/* If the frame in the memory has been written into */
   int next;					/* For use in SC queue */
+  unsigned ctr;				/* For use in AGING PR policy */
 }fr_map_t;
 
 extern bs_map_t bsm_tab[];

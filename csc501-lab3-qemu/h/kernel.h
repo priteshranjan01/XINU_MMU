@@ -30,6 +30,7 @@ typedef	char		Bool;		/* Boolean type			*/
 #define	NULLSTK		MINSTK		/* process 0 stack size		*/
 #define	MAGIC		0125251		/* unusual value for top of stk	*/
 
+/* p starts from 0 to 31 , assuming a 32 bit word*/
 #define SET_BIT(a,p)   (a = (a | (1UL<<p)))
 #define RESET_BIT(a,p) (a = (a & (~(1UL<<p))))
 #define GET_BIT(a,p) (!(0==(a & (1UL << (p)))))
