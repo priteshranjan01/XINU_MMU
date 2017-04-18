@@ -40,7 +40,7 @@ void proc1_test1(char *msg, int lck) {
 
 void proc1_test2(char *msg, int lck) {
 	int *x;
-
+int status;
 	kprintf("ready to allocate heap space\n");
 	x = vgetmem(1024);
 	kprintf("heap allocated at %x\n", x);
@@ -48,7 +48,9 @@ void proc1_test2(char *msg, int lck) {
 	*(x + 1) = 200;
 
 	kprintf("heap variable: %d %d\n", *x, *(x + 1));
-	vfreemem(x, 1024);
+	status = vfreemem(x, 1024);
+	if (status == SYSERR)
+		kprintf("\nvfreemem failed");
 }
 
 void proc1_test3(char *msg, int lck) {
@@ -63,7 +65,7 @@ void proc1_test3(char *msg, int lck) {
 	}
 
 	for (i = 0; i < 1024; i++) {
-		kprintf("0x%08x: %c\n", addr + i * NBPG, *(addr + i * NBPG));
+		kprintf("0x%08x: %c\t", addr + i * NBPG, *(addr + i * NBPG));
 	}
 
 	return;
