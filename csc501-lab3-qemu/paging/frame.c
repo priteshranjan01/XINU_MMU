@@ -121,9 +121,9 @@ int clean_up_inverted_page_table(int pid)
 			break;
 	}
 	nelements = i;
-	print_sc_queue();
+	if(debug) print_sc_queue();
 	
-	for(i = 0; i<nelements; i++)
+	for(i = 0; i<=nelements; i++)
 	{
 		p = queue[i];
 		if (debug) kprintf("\nfr_pid = %d, process state = %d, frame status=%d, vpno=0x%x, type=%d, dirty=%d",frm_tab[p].fr_pid, proctab[frm_tab[p].fr_pid].pstate, frm_tab[p].fr_status, frm_tab[p].fr_vpno, frm_tab[p].fr_type, frm_tab[p].fr_dirty);
@@ -132,9 +132,8 @@ int clean_up_inverted_page_table(int pid)
 		  free_frm(p+ENTRIES_PER_PAGE);
 		  remove_from_sc_queue(p);
 		}
-       	kprintf("\nNew p %d ",p);	
 	}
-	print_sc_queue();
+	if(debug) print_sc_queue();
 	return OK;
 }
 
