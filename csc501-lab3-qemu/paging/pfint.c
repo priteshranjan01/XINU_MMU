@@ -92,15 +92,16 @@ SYSCALL dummy_pfint(unsigned long cr2)
 	}
 	int store, pageth;
 	status = bsm_lookup(currpid, cr2, &store, &pageth);
-	if(status != OK) return status;
-	if(debug) kprintf("\ncurrpid %d, store %d, pageth %d",currpid, store, pageth);
-	if (get_frm(&frame_no) != OK)
+	if(status != OK) 
 	{
-		kprintf("\nHouston, we got another problem");
-		return SYSERR;
+		kprintf("\nBSM lookup failed in pfint. pid  %d", currpid); return status;
 	}
-	if(debug) kprintf("\nNew Page is created in frame # %d",frame_no);	
-	read_bs((char *)(frame_no<<12), store, pageth);
+	if(debug) kprintf("\ncurrpid %d, store %d, pageth %d",currpid, store, pageth);
+	status = handle_shared_memory_usecase(currpid, store, pageth, &frame_no);
+
+	if (status != OK)
+		return SYSERR;
+	if(debug) kprintf("\nUsing frame no# %d", frame_no);
 	pt_t * pte = (pt_t*)((((*pde).pde.pd_base) << 12) + pt_off) ;
 	(*pte).dummy = 0;
 	(*pte).pte.pt_pres = 1;
@@ -110,4 +111,54 @@ SYSCALL dummy_pfint(unsigned long cr2)
 	update_inverted_pt_entry(frame_no, FRM_MAPPED, vpno, FR_PAGE);
 	if(debug) kprintf("\n pte value = 0x%x", (*pte).dummy);
 	return OK;
+}
+
+int handle_shared_memory_usecase(int currpid, bsd_t store, int pageth, int * frame_no)
+{
+	if(bsm_tab[store].bs_status == BSM_MAPPED)
+	{
+	// Check if store is shared 
+		if(bsm_tab[store].shared == TRUE)
+		{
+		// Check if pageth from store is already in some frame.
+			*frame_no = find_the_shared_frame(store, pageth);
+			if(*frame_no == SYSERR)
+			{// If NO then find a new frame.
+				if (get_frm(&frame_no) != OK)
+				{			
+					kprintf("\nHouston, we got another problem. Couldn't find a frame");
+					return SYSERR;
+				}
+				if(debug) kprintf("\nNew Page is created in frame # %d",frame_no);
+				// Insert the entry in the mapping.
+				status = insert_into_bs_fr_tab(bs_id, pageth, frame_no);
+				if(status == SYSERR)
+				{
+					kprintf("\n Error while inserting into bs_fr_tab");
+					return status;
+				}
+				// Read the store into memory.
+				read_bs((char *)(frame_no<<12), store, pageth);
+				return OK;
+			}
+			else
+			{ // Happy case, the frame was already in the memory.
+				kprintf(" Frame# %d was mapped to BS# %d and offset# %d",*frame_no, store, pageth); 
+				return OK;
+			}
+		}
+		else
+		{
+			// If not shared then find a new frame.
+			if (get_frm(&frame_no) != OK)
+				{			
+					kprintf("\nHouston, we got into trouble. Couldn't find a frame");
+					return SYSERR;
+				}
+			if(debug) kprintf("\nNew Page is created in frame # %d",frame_no);	
+			read_bs((char *)(frame_no<<12), store, pageth);
+			return OK;
+		}
+	}
+	return SYSERR;  // the store must be already mapped
 }

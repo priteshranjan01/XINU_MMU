@@ -118,8 +118,7 @@ typedef struct{
 
 typedef struct{
   int fr_status;			/* MAPPED or UNMAPPED		*/
-  int fr_pid;				/* process id using this frame  */
-  int fr_vpno;				/* corresponding virtual page no*/
+  map_struct pr_map[MAX_PROCESS_PER_BS];
   int fr_refcnt;			/* reference count		*/
   int fr_type;				/* FR_DIR, FR_TBL, FR_PAGE	*/
   int fr_dirty;				/* If the frame in the memory has been written into */
@@ -127,11 +126,21 @@ typedef struct{
   unsigned char ctr:8;				/* For use in AGING PR policy */
 }fr_map_t;
 
+/* To keep track of which page from a BS is stored in which frame */
+typedef struct
+{
+	int 	valid;	/* Is this entry valid  */
+	bsd_t 	bs_id;		/* BS ID */
+	int 	pageth;		/* the page offset in bs_id  */
+	int 	fr_no;    	/* fr_no shall range from 1024 to 2048  */
+}bs_fr_map;
+
 extern int 		pr_debug;
 extern int 		page_replace_policy;
 extern int 		sc_head;  // Second Change PR policy queue head
 extern bs_map_t bsm_tab[];
 extern fr_map_t frm_tab[];
+extern bs_fr_map bs_fr_tab[];
 extern unsigned long pferrcode;
 extern unsigned long gpt_base_address[] ;  // Keeps the base address of 4 global page tables.
 // Useful while initializing a process' page directory.
@@ -176,6 +185,9 @@ SYSCALL bsm_map(int pid, int vpno, bsd_t bs_id, int npages);
 SYSCALL bsm_unmap(int pid, int vpno, int flag);
 SYSCALL is_bsm_available(bsd_t bsm_id, int pid, int * bs_shared);
 SYSCALL bsm_lookup(int pid, unsigned long vaddr, int* store, int* pageth);
+SYSCALL insert_into_bs_fr_tab(bsd_t bs_id, int pageth, int fr_no);
+SYSCALL remove_from_bs_fr_tab(bsd_t bs_id, int pageth);
+SYSCALL find_the_shared_frame(bsd_t bs_id, int pageth);
 
 /* pfintr.S  Interrupt hander for INT 14 page fault */
 void pfintr();
@@ -183,6 +195,8 @@ void pfintr();
 /* pfint.c */
 SYSCALL pfint();
 SYSCALL dummy_pfint(unsigned long cr2);
+SYSCALL handle_shared_memory_usecase(int currpid, bsd_t store, int pageth, int * frame_no);
+
 
 /* policy.c */
 SYSCALL srpolicy(int policy);

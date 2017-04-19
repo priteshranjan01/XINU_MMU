@@ -243,3 +243,59 @@ void print_backing_store()
 	}
 }
 
+
+int insert_into_bs_fr_tab(bsd_t bs_id, int pageth, int fr_no)
+{
+	int i = 0;
+	if(bsm_tab[bs_id].shared == FALSE)
+	{
+		kprintf("\nCan't insert private BS id into bs_fr_tab ");
+		return SYSERR;
+	}
+
+	for (i = 0; i < ENTRIES_PER_PAGE; i++)
+	{
+		if(bs_fr_tab[i].valid == FALSE)
+		{
+			bs_fr_tab[i].fr_no = fr_no;
+			bs_fr_tab[i].pageth = pageth;
+			bs_fr_tab[i].bs_id = bs_id;
+			bs_fr_tab[i].valid = TRUE;
+			return OK;
+		}
+	}
+	return SYSERR;
+}
+
+int remove_from_bs_fr_tab(bsd_t bs_id, int pageth)
+{
+	int i = 0;
+	for(i=0; i < ENTRIES_PER_PAGE; i++)
+	{
+		if(bs_fr_tab[i].bs_id == bs_id && bs_fr_tab[i].pageth == pageth)
+		{
+			bs_fr_tab[i].fr_no = -1;
+			bs_fr_tab[i].pageth = -1;
+			bs_fr_tab[i].bs_id = -1;
+			bs_fr_tab[i].valid = FALSE;
+			return OK;
+		}
+	}
+	if(bsm_tab[bs_id].shared == FALSE)
+		return OK;
+	return SYSERR;
+}
+
+int find_the_shared_frame(bsd_t bs_id, int pageth)
+{
+	int i = 0;
+	for (i = 0; i < ENTRIES_PER_PAGE; i++)
+	{
+		if(bs_fr_tab[i].valid == TRUE)
+		{
+			if(bs_fr_tab[i].bs_id == bs_id && bs_fr_tab[i].pageth == pageth)
+				return bs_fr_tab[i].fr_no;
+		}
+	}
+	return SYSERR
+}

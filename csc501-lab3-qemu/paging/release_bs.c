@@ -42,6 +42,8 @@ https://classic.wolfware.ncsu.edu/wrap-bin/mesgboard/csc:501::001:1:2017?task=ST
 		bsm_tab[bs_id].bs_npages = -1;
 		bsm_tab[bs_id].bs_sem = -1;
 		bsm_tab[bs_id].shared = TRUE;
+		
+		// TODO: Clear all entries from bs_fr_tab related to this bs_id
 	}
 	restore(ps);
    return OK;

@@ -37,7 +37,7 @@ struct	mblock	memlist;	/* list of free memory blocks		*/
 unsigned long gpt_base_address[4];
 bs_map_t bsm_tab[BS_COUNT];  /* bsm_map_t in paging.h */
 fr_map_t frm_tab[ENTRIES_PER_PAGE];   /* Called inverted page table in PA3*/
-
+bs_fr_map bs_fr_tab[ENTRIES_PER_PAGE];  
 #ifdef	Ntty
 struct  tty     tty[Ntty];	/* SLU buffers and mode control		*/
 #endif

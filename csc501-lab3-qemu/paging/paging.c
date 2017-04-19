@@ -106,10 +106,33 @@ SYSCALL update_inverted_pt_entry(int frame_no, int status, int vpno, int type)
 	/* frame_no should be between 1024 to 2048 */
 	if (frame_no < ENTRIES_PER_PAGE || frame_no >= ENTRIES_PER_PAGE*2)
 		return SYSERR;
+	int i, j;
 	frame_no -= ENTRIES_PER_PAGE;
 	frm_tab[frame_no].fr_status = status;
-	frm_tab[frame_no].fr_pid = currpid;
-	frm_tab[frame_no].fr_vpno = vpno;
+	for(i=0; i< ENTRIES_PER_PAGE; i++)
+	{
+		if(frm_tab[frame_no].pr_map[i].bs_pid == currpid)
+		{	frm_tab[frame_no].pr_map[i].bs_vpno = vpno
+			break;
+		}
+	}
+	if(i >= ENTRIES_PER_PAGE)
+	{
+		for(j=0; j< ENTRIES_PER_PAGE; j++)
+		{
+			if(frm_tab[frame_no].pr_map[j].bs_pid == -1)
+			{	
+				frm_tab[frame_no].pr_map[j].bs_pid = currpid;
+				frm_tab[frame_no].pr_map[j].bs_vpno = vpno;
+				break;
+			}
+		}
+		if(j >= ENTRIES_PER_PAGE)
+		{
+			kprintf("\nFailed to update inverted page table for frame_no # %d",frame_no);
+			return SYSERR;
+		}
+	}
 	frm_tab[frame_no].fr_refcnt++;
 	frm_tab[frame_no].fr_type = type;
 	frm_tab[frame_no].fr_dirty = 0;
