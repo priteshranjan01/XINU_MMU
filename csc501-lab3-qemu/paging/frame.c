@@ -13,7 +13,6 @@ SYSCALL init_frm()
   STATWORD ps;
   int i,j ;
   disable(ps);
-  kprintf("\n\n\nWhere is my Mind\n\n");
   for(i=0; i< 4; i++)
   {		// 4 Frames for the global page tables.
 	  frm_tab[i].fr_status = FRM_MAPPED;
@@ -376,11 +375,11 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 		{   // Found the victim. Current frame is the victim.
 			*frame_number = sc_head + ENTRIES_PER_PAGE;
 			*is_dirty = victim_dirty;
-			kprintf("\n THE BITS SHOULD NOT BE ALL ZERO 0x%08x ",(*pte).dummy);
+			if(debug) kprintf("\n THE BITS SHOULD NOT BE ALL ZERO 0x%08x ",(*pte).dummy);
 
 			for(i=0; i<count; i++)
 				(*pte_s[i]).dummy = 0;
-			kprintf("\n CHECK IF THE BITS ARE ALL ZERO 0x%08x ",(*pte).dummy);
+			if(debug) kprintf("\n CHECK IF THE BITS ARE ALL ZERO 0x%08x ",(*pte).dummy);
 			// TODO: Decrease the ref_cnt from inverted page table. if it becomes zero then invalidate the PDE.
 			// TODO: Invalidate the TLB entry.
 			// Remove the frame from the queue.

@@ -144,7 +144,7 @@ int status;
 			}
 			else
 			{ // Happy case, the frame was already in the memory.
-				kprintf(" Frame# %d was mapped to BS# %d and offset# %d",*frame_no, store, pageth); 
+				if(debug) kprintf(" Frame# %d was mapped to BS# %d and offset# %d",*frame_no, store, pageth); 
 				return OK;
 			}
 		}
