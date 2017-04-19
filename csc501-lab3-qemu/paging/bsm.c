@@ -297,5 +297,5 @@ int find_the_shared_frame(bsd_t bs_id, int pageth)
 				return bs_fr_tab[i].fr_no;
 		}
 	}
-	return SYSERR
+	return SYSERR;
 }

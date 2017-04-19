@@ -157,7 +157,7 @@ int clean_up_inverted_page_table(int pid)
 				continue;
 
 			if (debug) kprintf("\nfr_pid = %d, process state = %d, vpno=0x%x ",
-					temp_pid, proctab[temp_pid].pstate, frm_tab[p].fr_vpno)
+					temp_pid, proctab[temp_pid].pstate, frm_tab[p].pr_map[j].bs_vpno);
 
 			if(temp_pid == pid || proctab[temp_pid].pstate == PRFREE)
 			{
@@ -324,9 +324,10 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 	
 	// The ptes variable is used to keep track of which 
 	// PTE values need to be invalidated in case the frame shall need to be removed.
-	unsigned long pte_s[MAX_PROCESS_PER_BS];
+	pt_t  *pte_s[MAX_PROCESS_PER_BS];
 	int victim_dirty = FALSE;
 	int count=0;
+	pt_t *pte;
 	for(; ct <= NFRAMES; ct++)
 	{	
 		if(sc_head == -1)
@@ -351,7 +352,7 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 			pd_t *pde = (pd_t*)(pdbr + pd_off);
 			if ((*pde).pde.pd_pres == 0)
 			{kprintf("\nSTAGE 1: We are in deep trouble."); return SYSERR;}
-			pt_t *pte = (pt_t*)(((*pde).pde.pd_base << 12) + pt_off);
+			pte = (pt_t*)(((*pde).pde.pd_base << 12) + pt_off);
 			if ((*pte).pte.pt_pres == 0)
 			{kprintf("\nSTAGE 2: We are in deep trouble."); return SYSERR;}
 			if((*pte).pte.pt_acc == 1)
@@ -363,7 +364,7 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 			else
 			{  // This might not get a second chance. Let's store the pte so that we can
 				// invalidate the entry in case this frame is swapped out.
-				pte_s[count] = (unsigned long)(pte);
+				pte_s[count] = pte;
 				victim_dirty = (*pte).pte.pt_dirty || victim_dirty;
 				count++;
 			}
@@ -377,7 +378,7 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 			kprintf("\n THE BITS SHOULD NOT BE ALL ZERO 0x%08x ",(*pte).dummy);
 
 			for(i=0; i<count; i++)
-				(*(pte_s[i])).dummy = 0;
+				(*pte_s[i]).dummy = 0;
 			kprintf("\n CHECK IF THE BITS ARE ALL ZERO 0x%08x ",(*pte).dummy);
 			// TODO: Decrease the ref_cnt from inverted page table. if it becomes zero then invalidate the PDE.
 			// TODO: Invalidate the TLB entry.

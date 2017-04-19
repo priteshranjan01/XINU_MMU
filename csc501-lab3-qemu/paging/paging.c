@@ -112,7 +112,7 @@ SYSCALL update_inverted_pt_entry(int frame_no, int status, int vpno, int type)
 	for(i=0; i< ENTRIES_PER_PAGE; i++)
 	{
 		if(frm_tab[frame_no].pr_map[i].bs_pid == currpid)
-		{	frm_tab[frame_no].pr_map[i].bs_vpno = vpno
+		{	frm_tab[frame_no].pr_map[i].bs_vpno = vpno;
 			break;
 		}
 	}
