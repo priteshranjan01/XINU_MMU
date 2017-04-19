@@ -8,7 +8,6 @@
 #include <io.h>
 #include <q.h>
 #include <stdio.h>
-#include <paging.h>
 
 /*------------------------------------------------------------------------
  * kill  --  kill a process and remove it from the system
@@ -39,10 +38,8 @@ SYSCALL kill(int pid)
 		close(dev);
 	
 	send(pptr->pnxtkin, pid);
+
 	freestk(pptr->pbase, pptr->pstklen);
-	free_bsm(pid);
-	clean_up_inverted_page_table(pid) ;
-	
 	switch (pptr->pstate) {
 
 	case PRCURR:	pptr->pstate = PRFREE;	/* suicide */
@@ -59,7 +56,6 @@ SYSCALL kill(int pid)
 						/* fall through	*/
 	default:	pptr->pstate = PRFREE;
 	}
-
 	restore(ps);
 	return(OK);
 }

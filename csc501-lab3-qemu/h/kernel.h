@@ -30,10 +30,6 @@ typedef	char		Bool;		/* Boolean type			*/
 #define	NULLSTK		MINSTK		/* process 0 stack size		*/
 #define	MAGIC		0125251		/* unusual value for top of stk	*/
 
-#define SET_BIT(a,p)   (a = (a | (1UL<<p)))
-#define RESET_BIT(a,p) (a = (a & (~(1UL<<p))))
-#define GET_BIT(a,p) (!(0==(a & (1UL << (p)))))
-
 /* Universal return constants */
 
 #define	OK		 1		/* system call ok		*/
@@ -69,7 +65,6 @@ typedef	int	REG;		/* sizeof machine register		*/
 #define MAXLONG		0x7fffffff	
 #define MINLONG		0x80000000
 
-#define BS_COUNT 8
 typedef short	STATWORD[1];	/* machine status for disable/restore	*/
 				/* by declaring it to be an array, the	*/
 				/* name provides an address so forgotten*/
@@ -82,7 +77,6 @@ typedef short	STATWORD[1];	/* machine status for disable/restore	*/
 
 extern	int	rdyhead, rdytail;
 extern	int	preempt;
-extern int debug;
 
 /* Include types and configuration information */
 

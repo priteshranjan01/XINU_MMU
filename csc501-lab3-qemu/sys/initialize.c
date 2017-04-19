@@ -23,7 +23,7 @@ extern	int	main();	/* address of user's main prog	*/
 extern	int	start();
 
 LOCAL		sysinit();
-int debug = FALSE;
+
 /* Declarations of major kernel variables */
 struct	pentry	proctab[NPROC]; /* process table			*/
 int	nextproc;		/* next process slot to use in create	*/
@@ -33,11 +33,6 @@ struct	qent	q[NQENT];	/* q table (see queue.c)		*/
 int	nextqueue;		/* next slot in q structure to use	*/
 char	*maxaddr;		/* max memory address (set by sizmem)	*/
 struct	mblock	memlist;	/* list of free memory blocks		*/
-
-unsigned long gpt_base_address[4];
-bs_map_t bsm_tab[BS_COUNT];  /* bsm_map_t in paging.h */
-fr_map_t frm_tab[ENTRIES_PER_PAGE];   /* Called inverted page table in PA3*/
-
 #ifdef	Ntty
 struct  tty     tty[Ntty];	/* SLU buffers and mode control		*/
 #endif
@@ -53,8 +48,7 @@ int	console_dev;		/* the console device			*/
 
 /*  added for the demand paging */
 int page_replace_policy = SC;
-sc_head = -1;
-int pr_debug= TRUE;  /* Print page replacement debug information */
+
 /************************************************************************/
 /***				NOTE:				      ***/
 /***								      ***/
@@ -75,7 +69,7 @@ int pr_debug= TRUE;  /* Print page replacement debug information */
  */
 nulluser()				/* babysit CPU when no one is home */
 {
-    int userpid;
+        int userpid;
 
 	console_dev = SERIAL0;		/* set console to COM0 */
 
@@ -138,8 +132,9 @@ sysinit()
 	struct	pentry	*pptr;
 	struct	sentry	*sptr;
 	struct	mblock	*mptr;
-	//SYSCALL pfintr();  // Why is this here?
+	SYSCALL pfintr();
 
+	
 
 	numproc = 0;			/* initialize system variables */
 	nextproc = NPROC-1;
@@ -148,10 +143,6 @@ sysinit()
 
 	/* initialize free memory list */
 	/* PC version has to pre-allocate 640K-1024K "hole" */
-    /* Currently maxaddr is  hex(6291455) == '0x5fffff' 
-    HOLESTART == 640 * 1024 == 655360 == '0xa0000'
-    NULLSTK = MINSTK = 4096
-    HOLEEND == (1024 + 600) * 1024 == 406.0 * 4096 */
 	if (maxaddr+1 > HOLESTART) {
 		memlist.mnext = mptr = (struct mblock *) roundmb(&end);
 		mptr->mnext = (struct mblock *)HOLEEND;
@@ -173,44 +164,8 @@ sysinit()
 		mptr->mlen = (int) truncew((unsigned)maxaddr - (int)&end -
 			NULLSTK);
 	}
-	int status, frame_no;
+	
 
-	//TODO: Initialize BSM mapping tables.
-	status = init_bsm();
-	if(status != OK)
-		kprintf("\nSYSERR in init_bs()\n");
-	
-	status = init_frm();
-	if(status != OK)
-		kprintf("\nSYSERR in init_frm()\n");
-	
-	//TODO: Initialize 4 page tables mapping the first 16 MB space: DONE
-	status = initialize_4_global_page_tables(1024);
-	if(status != OK)
-		kprintf("\nSYSERR in initialize_4_global_page_tables\n");
-	
-	if (debug) kprintf("\nGPT initialized status = %d",status);
-	
-	//TODO: Initialize the page directory entry: DONE
-	pd_t * addr;
-	status = get_frame_for_PD(NULLPROC, &frame_no);
-	addr = initialize_page_directory(frame_no);  // Frame#1028 holds the NULL process's PD
-	if (debug) kprintf("\nNull process PD initialized status = %d, Frame # %d, adddress= 0x%x",status, frame_no, addr);
-	
-	//TODO: update the CR3 register: DONE
-	unsigned long temp_addr = addr;
-	temp_addr = (temp_addr >> 12 ) << 12;
-	write_cr3(temp_addr);
-	
-	if(debug) kprintf("\nCR3 value = 0x%x", read_cr3());
-	//TODO: set page fault handler routine: DONE
-	set_evec(14, (unsigned long)pfintr);
-
-	// TODO: modify create so that new processes have correct pdbr in proctab. DONE
-	//TODO: Load pdbr from proctab in resched.c  DONE
-	//TODO: Enable paging
-	
-	enable_paging();
 	for (i=0 ; i<NPROC ; i++)	/* initialize process table */
 		proctab[i].pstate = PRFREE;
 
@@ -247,10 +202,6 @@ sysinit()
 	pptr->pargs = 0;
 	pptr->pprio = 0;
 	currpid = NULLPROC;
-	//TODO: update pdbr in pptr for Null process: DONE
-	
-	pptr->pdbr = temp_addr;
-	if (debug) kprintf("\nNull process' pdbr = %x",pptr->pdbr);
 
 	for (i=0 ; i<NSEM ; i++) {	/* initialize semaphores */
 		(sptr = &semaph[i])->sstate = SFREE;
@@ -258,6 +209,7 @@ sysinit()
 	}
 
 	rdytail = 1 + (rdyhead=newqueue());/* initialize ready list */
+
 
 	return(OK);
 }
@@ -292,7 +244,7 @@ long sizmem()
 	/* at least now its hacked to return
 	   the right value for the Xinu lab backends (16 MB) */
 
-	return 4096;  // LMFAO
+	return 4096; 
 
 	start = ptr = 0;
 	npages = 0;
