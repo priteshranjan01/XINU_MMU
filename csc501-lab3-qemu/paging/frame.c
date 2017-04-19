@@ -367,14 +367,15 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 				pte_s[count] = pte;
 				victim_dirty = (*pte).pte.pt_dirty || victim_dirty;
 				count++;
+				*pid = temp_pid;
+				*vpno = temp_vpno;
+			
 			}
 		}
 		if(accessed == FALSE)
 		{   // Found the victim. Current frame is the victim.
 			*frame_number = sc_head + ENTRIES_PER_PAGE;
 			*is_dirty = victim_dirty;
-			*pid = temp_pid;
-			*vpno = temp_vpno;
 			kprintf("\n THE BITS SHOULD NOT BE ALL ZERO 0x%08x ",(*pte).dummy);
 
 			for(i=0; i<count; i++)
