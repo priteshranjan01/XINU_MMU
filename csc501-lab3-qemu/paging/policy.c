@@ -2,6 +2,7 @@
 
 #include <conf.h>
 #include <kernel.h>
+#include <proc.h>
 #include <paging.h>
 
 
@@ -436,15 +437,24 @@ int test_fifo_queue()
 {
 	kprintf("\n FIFO HEAD = %d", fifo_head);
 	print_fifo_queue();
-	insert_into_fifo_queue(12);
-	insert_into_fifo_queue(514);
-	insert_into_fifo_queue(518);
+	insert_into_fifo_queue(512);
+	print_fifo_queue();
+
 	insert_into_fifo_queue(513);
 	print_fifo_queue();
-	remove_from_fifo_queue(12);
-	remove_from_fifo_queue(514);	
-	remove_from_fifo_queue(518);
+
+	insert_into_fifo_queue(514);
+	print_fifo_queue();
+	insert_into_fifo_queue(515);
+	print_fifo_queue();
+	remove_from_fifo_queue(514);
+	print_fifo_queue();
+	remove_from_fifo_queue(512);	
+	print_fifo_queue();
 	remove_from_fifo_queue(513);
+	print_fifo_queue();
+	remove_from_fifo_queue(515);
+	print_fifo_queue();
 	remove_from_fifo_queue(113);
 	print_fifo_queue();
 	//print_sc_queue();
