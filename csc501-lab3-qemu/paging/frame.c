@@ -234,7 +234,7 @@ int clean_up_inverted_page_table(int pid)
 	for(i = 0; i<=nelements; i++)
 	{	remove_from_queue = TRUE;
 		p = queue[i];
-		if (debug) kprintf("\n frame status=%d, type=%d", frm_tab[p].fr_status, frm_tab[p].fr_type);
+		if (debug) kprintf("\n frame status=%d, type=%d is_dirty= %d", frm_tab[p].fr_status, frm_tab[p].fr_type, frm_tab[p].fr_dirty);
 		for(j=0; j<MAX_PROCESS_PER_BS; j++)
 		{
 			temp_pid = frm_tab[p].pr_map[j].bs_pid;
@@ -253,6 +253,8 @@ int clean_up_inverted_page_table(int pid)
 			if(temp_pid == pid || proctab[temp_pid].pstate == PRFREE)
 			{
 				free_frm(p+ENTRIES_PER_PAGE, temp_pid);	
+			    if(debug) kprintf("\n Frame No %d is_dirty=%d, Writing to memory", p+ENTRIES_PER_PAGE, frm_tab[p].fr_dirty);
+  			    write_bs((p+ENTRIES_PER_PAGE)<<12, frm_tab[p].bs_id, frm_tab[p].pageth);
 			}
 		}
 		if(remove_from_queue == TRUE) 
@@ -330,8 +332,10 @@ int get_victim_frame(int * frame_number)
 			write_bs((char *)((*frame_number)<<12), store, pageth);		
 		}
 	}
+	if(debug) kprintf("\n Swapped Out Frame no # %d , was_dirty = %d ",*frame_number, is_dirty);
  free_frm(*frame_number, pid);
- if(pr_debug) kprintf("\nSwapped out Frame number # %d\n",*frame_number);
+	if(pr_debug) kprintf("\n Swapped Out Frame no # %d",*frame_number);
+
  return OK;
 }
 
@@ -449,7 +453,8 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 			pte = (pt_t*)(((*pde).pde.pd_base << 12) + pt_off);
 			if ((*pte).pte.pt_pres == 0)
 			{kprintf("\nSTAGE 2: We are in deep trouble."); return SYSERR;}
-			// If this frame was written by any process then mark it as dirty. I am not using this information.
+			// If this frame was written by any process then mark it as dirty. Used when a processes is killed 
+			// and we need to figure out if this should be written into memory
 			frm_tab[sc_head].fr_dirty = frm_tab[sc_head].fr_dirty || (*pte).pte.pt_dirty;
 			if((*pte).pte.pt_acc == 1)
 			{  // At least one process has accessed this frame. THis will get another chance.
@@ -500,7 +505,7 @@ int insert_bs_fr_tab_info(bsd_t bs_id, int pageth, int frame_no)
 	frame_no -= ENTRIES_PER_PAGE;
 	if(frm_tab[frame_no].fr_status == FRM_UNMAPPED)
 	{
-		kprintf("\nWARNING: Putting BS-Frame map fata in UNMAPPED Frame No# %d",frame_no);
+		if(debug) kprintf("\nWARNING: Putting BS-Frame map fata in UNMAPPED Frame No# %d",frame_no);
 	}
 	frm_tab[frame_no].bs_id = bs_id;
 	frm_tab[frame_no].pageth = pageth;
@@ -511,7 +516,7 @@ int insert_bs_fr_tab_info(bsd_t bs_id, int pageth, int frame_no)
 int remove_bs_fr_tab_info(bsd_t bs_id, int pageth, int frame_no)
 {
 	frame_no -= ENTRIES_PER_PAGE;
-	kprintf("\n remove_bs_fr_tab_info bs_id = %d, pageth = %d, frame no= %d",bs_id, pageth, frame_no);
+	if(debug) kprintf("\n remove_bs_fr_tab_info bs_id = %d, pageth = %d, frame no= %d",bs_id, pageth, frame_no);
 	frm_tab[frame_no].bs_id = -1;
 	frm_tab[frame_no].pageth = -1;
 	return OK;
@@ -534,7 +539,7 @@ int get_bs_offset(int frame_no, bsd_t *bs_id, int *pageth)
 	{
 		*bs_id = frm_tab[frame_no].bs_id ;
 		*pageth = frm_tab[frame_no].pageth;
-	kprintf("\n get_bs_offset bs_id = %d, pageth = %d, frame no= %d",*bs_id, *pageth, frame_no);
+		if(debug) kprintf("\n get_bs_offset bs_id = %d, pageth = %d, frame no= %d",*bs_id, *pageth, frame_no);
 		return OK;
 	}
 	return SYSERR;

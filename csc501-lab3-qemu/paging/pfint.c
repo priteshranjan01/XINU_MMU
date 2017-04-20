@@ -102,7 +102,7 @@ SYSCALL dummy_pfint(unsigned long cr2)
 	}
 	if(debug) kprintf("\ncurrpid %d, store %d, pageth %d",currpid, store, pageth);
 	status = handle_shared_memory_usecase(store, pageth, &frame_no);
-
+	if(debug) print_sc_queue();
 	if (status != OK)
 		return SYSERR;
 	if(frame_no < 1024 || frame_no > 2048)

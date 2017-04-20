@@ -11,17 +11,25 @@
  */
 SYSCALL srpolicy(int policy)
 {
+	static int i = 0;
+	if(i==0)
+	{
 	  pr_debug = TRUE;
 	  switch(policy)
 	  { // policy wise code initialization
 		case AGING:
 		default:  /* Fall Through */
 		case SC:
-			sc_head = -1;
+				sc_head = -1;
 	  }
 	  page_replace_policy = policy;
-	  
+	  i++;
 	  return OK;
+	}
+	else
+	{
+	kprintf("\n WARNING: srpolicy(AGING), if called, will be the first statement in the program");
+	}
  }
 
 /*-------------------------------------------------------------------------
@@ -168,12 +176,14 @@ void print_sc_queue()
 {
 	if(sc_head == -1)
 	{kprintf("\nEmpty SC queue"); return;}
-	kprintf("\n sc_queue = %d ", sc_head);
+	kprintf("\n Queue Head= %d \n Frame No\tBS ID\tOffset\tNext", sc_head+ENTRIES_PER_PAGE);
 	int p = frm_tab[sc_head].next;
 	int ct=0;
+	kprintf("\n %9d\t%5d\t%6d\t%4d", sc_head+ENTRIES_PER_PAGE, frm_tab[sc_head].bs_id, frm_tab[sc_head].pageth, frm_tab[sc_head].next+ENTRIES_PER_PAGE);
+
 	while(p != sc_head && ct <= 512)
 	{
-		kprintf("\t %d ", p);
+		kprintf("\n %9d\t%5d\t%6d\t%4d", p+ENTRIES_PER_PAGE, frm_tab[p].bs_id, frm_tab[p].pageth, frm_tab[p].next+ENTRIES_PER_PAGE);
 		p = frm_tab[p].next;
 		ct++;
 	}
@@ -197,6 +207,6 @@ int test_sc_queue()
 	kprintf("\n %d",remove_from_sc_queue(513));
 	kprintf("\n %d",remove_from_sc_queue(113));
 	print_sc_queue();
-	print_sc_queue();
+	//print_sc_queue();
 	return OK;
 }
