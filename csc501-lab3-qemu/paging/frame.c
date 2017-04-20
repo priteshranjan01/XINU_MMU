@@ -154,7 +154,6 @@ SYSCALL free_frm(int frame_no, int pid)
 	  frm_tab[i].pageth = -1;
 	  if(ct >= MAX_PROCESS_PER_BS)
 		  frm_tab[frame_no].fr_status = FRM_UNMAPPED;
-	
 	}
 	else
 	{
@@ -210,6 +209,7 @@ SYSCALL get_frame_for_PT(int *frame_number)
 
 int clean_up_inverted_page_table(int pid)
 {
+	// This should be called when PR policy is SC.
 	// Free up the entries in inverted page table.
 	// Iterates through SC queue. If any frame of process pid is found or of a process which 
 	// is dead then frees that frame.
@@ -264,7 +264,57 @@ int clean_up_inverted_page_table(int pid)
 	return OK;
 }
 
+int clean_up_inverted_page_table_for_AGING_policy(int pid)
+{
+	int p, i, j, nelements;
+	int queue[NFRAMES];
+	int remove_from_queue = TRUE;
+	if(fifo_head == -1)  return OK;
+	p = fifo_head;
+	if(debug) kprintf("\clean_up_inverted_page_table_for_AGING_policy called for pid # %d, sc_head = %d\n", pid, p);
+	for(i=0; i<NFRAMES; i++)
+	{
+		queue[i] = p;
+		p = frm_tab[p].next;
+		if(p == -1)
+			break;
+	}
+	nelements = i;
+	if(debug) print_fifo_queue();
+	int temp_pid = -1;
+	for(i=0; i <= nelements; i++)
+	{
+		remove_from_queue = TRUE;
+		p = queue[i];
+		if(debug) kprintf("\n frame status=%d, type=%d is_dirty= %d", frm_tab[p].fr_status, frm_tab[p].fr_type, frm_tab[p].fr_dirty);
+		for(j=0; j<MAX_PROCESS_PER_BS; j++)
+		{
+			temp_pid = frm_tab[p].pr_map[j].bs_pid;
+			if(temp_pid == -1)
+				continue;
+			if(temp_pid != pid && proctab[temp_pid].pstate != PRFREE)
+			{
+				// Some other LIVE process is holding this frame. Don't remove this frame
+				// from queue. 
+				remove_from_queue = FALSE;
+			}
+			if (debug) kprintf("\nfr_pid = %d, process state = %d, vpno=0x%x ",
+			temp_pid, proctab[temp_pid].pstate, frm_tab[p].pr_map[j].bs_vpno);
+			
+			if(temp_pid == pid || proctab[temp_pid].pstate == PRFREE)
+			{
+				free_frm(p+ENTRIES_PER_PAGE, temp_pid);
+				if(debug) kprintf("\n Frame No %d is_dirty=%d, Writing to memory", p+ENTRIES_PER_PAGE, frm_tab[p].fr_dirty);
+  			    write_bs((p+ENTRIES_PER_PAGE)<<12, frm_tab[p].bs_id, frm_tab[p].pageth);
+			}
 
+		}
+		if(remove_from_queue == TRUE)
+			remove_from_fifo_queue(p);
+	}
+	if(debug) print_sc_queue();
+	return OK;
+}
 
 SYSCALL get_frm(int* frame_number)
 {
@@ -279,15 +329,17 @@ SYSCALL get_frm(int* frame_number)
 		frm_tab[i].fr_status = FRM_MAPPED;
 		frm_tab[i].fr_type = FR_PAGE;
 		*frame_number = i+ ENTRIES_PER_PAGE;
-		// switch(grpolicy())
-		// {
-			// case AGING:
-			// default: /* Fall Through */
-			// case SC: 
-				frm_tab[i].ctr = 0;		/* Initialize the ctr used by AGING PR policy to zero */
+		 switch(grpolicy())
+		 {
+			case AGING:
+					frm_tab[i].ctr = 0;		/* Initialize the ctr used by AGING PR policy to zero */
+					status = insert_into_fifo_queue(i);
+					break;
+			default: /* Fall Through */
+			case SC:
 				status = insert_into_sc_queue(i);  /* Expects a value in range 512 to 1023 both inclusive*/
 		
-		// }
+		 }
 		return OK;
 	}
   }
@@ -304,8 +356,8 @@ int get_victim_frame(int * frame_number)
 	switch(grpolicy())
 	{
 		case AGING:
-			//status = get_AGING_policy_victim(frame_number, &is_dirty, &vpno, &pid);
-			//break;
+			status = get_AGING_policy_victim(frame_number, &is_dirty, &vpno, &pid);
+			break;
 		default: /* Fall Through */
 		case SC: 
 			status = get_SC_policy_victim(frame_number, &is_dirty, &vpno, &pid);
@@ -319,8 +371,6 @@ int get_victim_frame(int * frame_number)
 	if(is_dirty)
 	{
 		if(debug) kprintf("\nDirty bit was set Write to backing store. ");
-		// TODO: THIS WILL HAVE TO CHANGE
-		//status = bsm_lookup(pid, vpno<<12, &store, &pageth);
 		status = get_bs_offset(*frame_number, &store, &pageth);
 		if(debug) kprintf("\npid %d, store %d, pageth %d vpno=0x%x",pid, store, pageth, vpno);
 		if(status == SYSERR)
@@ -333,77 +383,11 @@ int get_victim_frame(int * frame_number)
 		}
 	}
 	if(debug) kprintf("\n Swapped Out Frame no # %d , was_dirty = %d ",*frame_number, is_dirty);
- free_frm(*frame_number, pid);
+    free_frm(*frame_number, pid);
 	if(pr_debug) kprintf("\n Swapped Out Frame no # %d",*frame_number);
 
  return OK;
 }
-
-
-
-/*
-int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno1,int *pid1)
-{  // Sorry, but I had to duplicate the code.
-	int ct=0, p;
-	unsigned long pdbr, pd_off, pt_off;
-	unsigned char min_ctr= 0xff;
-	if(debug) kprintf("\nmin_Ctr %d", min_ctr);
-	unsigned long *vpno , *pid;
-	for(p = sc_head; ct <= NFRAMES; ct++)
-	{	
-		if(sc_head == -1)
-		{
-			kprintf("\nget_AGING_policy_victim: SC queue is not set sc_head %d",sc_head);
-			return SYSERR;
-		}
-		
-		*pid = frm_tab[p].fr_pid;
-		*vpno = frm_tab[p].fr_vpno;
-		pdbr = ((proctab[*pid].pdbr)>>12)<<12;  // Clear the 12 LSB bits.
-		pd_off = ((*vpno) <<12) >> 22;  // Double check this. vpno shall have only 20 LSB bits.
-		pt_off = ((*vpno) << 22) >> 22; 
-		if(debug) kprintf("\nDouble Check these values: pdbr = 0x%x, vpno = 0x%08x pd_off 0x%x pt_off 0x%x ",pdbr,*vpno, pd_off,pt_off);
-		pd_off = pd_off << 2;  // Multiply by 4
-		pt_off = pt_off << 2;
-		pd_t *pde = (pd_t*)(pdbr + pd_off);
-		if ((*pde).pde.pd_pres == 0)
-			{kprintf("\nSTAGE 1: We are in deep trouble."); return SYSERR;}
-		pt_t *pte = (pt_t*)(((*pde).pde.pd_base << 12) + pt_off);
-		if ((*pte).pte.pt_pres == 0)
-			{kprintf("\nSTAGE 2: We are in deep trouble."); return SYSERR;}
-		frm_tab[p].ctr = frm_tab[p].ctr >> 1 ;
-		if((*pte).pte.pt_acc == 1)
-		{
-			SET_BIT(frm_tab[p].ctr, 7);
-      if (debug) kprintf("\nfrm_tab[p].ctr = %d", frm_tab[p].ctr);
-			(*pte).pte.pt_acc = 0;  // Set the accessed bit to 0
-		}
-		if(frm_tab[p].ctr < min_ctr)
-		{
-			min_ctr = frm_tab[p].ctr;
-			(*frame_number) = (p + ENTRIES_PER_PAGE);
-			(*is_dirty) = (*pte).pte.pt_dirty;
-			(*vpno1) = frm_tab[p].fr_vpno;
-			(*pid1) = frm_tab[p].fr_pid;
-		}
-		p = frm_tab[p].next;
-		if(p == sc_head)
-			break;
-	}
-	if(ct > NFRAMES)
-	{
-		kprintf("The queue has not been set up properly ct = %d  NFRAMES= %d", ct, NFRAMES);
-		return SYSERR;
-	}
-	// Move the sc_head one step forward to give it the illusion of removing and inserting the frame.
-	sc_head = frm_tab[sc_head].next;
-	frm_tab[(*frame_number-ENTRIES_PER_PAGE)].ctr =0;
- 	if(debug) kprintf("\n frame_number %d, is_dirty= %d, vpno= 0x%08x, pid= %d min_ctr = %d",*frame_number, *is_dirty, *vpno1, *pid1, min_ctr);
-
-	return OK;
-}
-
-*/
 
 
 int insert_bs_fr_tab_info(bsd_t bs_id, int pageth, int frame_no)
@@ -417,7 +401,6 @@ int insert_bs_fr_tab_info(bsd_t bs_id, int pageth, int frame_no)
 	frm_tab[frame_no].bs_id = bs_id;
 	frm_tab[frame_no].pageth = pageth;
 	return OK;
-
 }
 
 int remove_bs_fr_tab_info(bsd_t bs_id, int pageth, int frame_no)

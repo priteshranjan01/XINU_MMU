@@ -373,7 +373,7 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 			if(debug) kprintf("\n THE BITS SHOULD NOT BE ALL ZERO 0x%08x ",(*pte).dummy);
 
 			for(i=0; i<count; i++)
-				(*pte_s[i]).dummy = 0;
+				(*pte_s[i]).dummy = 0UL;
 			if(debug) kprintf("\n CHECK IF THE BITS ARE ALL ZERO 0x%08x ",(*pte).dummy);
 			// TODO: Decrease the ref_cnt from inverted page table. if it becomes zero then invalidate the PDE.
 			// TODO: Invalidate the TLB entry.
@@ -391,8 +391,102 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 
 }
 
+
+
+int reset_pte(int frame_no)
+{
+	/// If not done for the correct frame then this can be fatal to LIFE.
+	//RETURNS TRUE if the frame was dirty.
+	int i=0, temp_pid, temp_vpno;
+	int is_dirty = FALSE;
+	for(i=0; i<MAX_PROCESS_PER_BS; i++)
+	{
+		temp_pid = frm_tab[frame_no].pr_map[i].bs_pid;
+		if(temp_pid == -1)
+			continue;
+		temp_vpno = frm_tab[frame_no].pr_map[i].bs_vpno;
+		pdbr = ((proctab[temp_pid].pdbr)>>12)<<12;  // Clear the 12 LSB bits.
+		pd_off = ((temp_vpno) <<12) >> 22;  // Double check this. vpno shall have only 20 LSB bits.
+		pt_off = ((temp_vpno) << 22) >> 22; 
+		pd_off = pd_off << 2;  // Multiply by 4
+		pt_off = pt_off << 2;
+		pd_t *pde = (pd_t*)(pdbr + pd_off);
+		pt_t *pte = (pt_t*)(((*pde).pde.pd_base << 12) + pt_off);
+		is_dirty = is_dirty || (*pte).pte.pt_dirty;
+		if(debug) kprintf("\n THE BITS SHOULD NOT BE ALL ZERO 0x%08x ",(*pte).dummy);
+		(*pte).dummy = 0UL;
+		if(debug) kprintf("\n CHECK IF THE BITS ARE ALL ZERO 0x%08x ",(*pte).dummy);
+	}
+	return is_dirty;
+}
+
+
+
 int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno1,int *pid1)
 {
+	int p, ct, temp_pid;
+	int pot_vic_frm, vic_frm;
+	unsigned long temp_vpno;
+	unsigned char min_ctr = 0xff;
+	if(fifo_head == -1)
+	{
+		kprintf("\nget_AGING_policy_victim: FIFO queue is not set fifo_head %d",fifo_head);
+		return SYSERR;
+	}
+	for(ct=0, p = fifo_head; p != -1 && ct<= NFRAMES; ct++, p = frm_tab[p].next)  // For each frame in the FIFO queue
+	{
+		frm_tab[p].ctr = frm_tab[p].ctr >> 1;
+		for(i=0; i< MAX_PROCESS_PER_BS; i++)
+		{
+			temp_pid = frm_tab[p].pr_map[i].bs_pid;
+			if(temp_pid == -1)
+				continue;
+			temp_vpno = frm_tab[p].pr_map[i].bs_vpno;
+			pdbr = ((proctab[temp_pid].pdbr)>>12)<<12;  // Clear the 12 LSB bits.
+			pd_off = ((temp_vpno) <<12) >> 22;  // Double check this. vpno shall have only 20 LSB bits.
+			pt_off = ((temp_vpno) << 22) >> 22; 
+			if(debug) kprintf("\nDouble Check these values: pdbr = 0x%x, vpno = 0x%08x pd_off 0x%x pt_off 0x%x ",pdbr,temp_vpno, pd_off,pt_off);
+			pd_off = pd_off << 2;  // Multiply by 4
+			pt_off = pt_off << 2;
+			pd_t *pde = (pd_t*)(pdbr + pd_off);
+			if ((*pde).pde.pd_pres == 0)
+			{kprintf("\nSTAGE 1: We are in deep trouble."); return SYSERR;}
+			pte = (pt_t*)(((*pde).pde.pd_base << 12) + pt_off);
+			if ((*pte).pte.pt_pres == 0)
+			{kprintf("\nSTAGE 2: We are in deep trouble."); return SYSERR;}
+			// If this frame was written by any process then mark it as dirty.
+			frm_tab[p].fr_dirty = frm_tab[p].fr_dirty || (*pte).pte.pt_dirty;
+			if((*pte).pte.pt_acc == 1)
+			{
+				// Set the 8th bit in ctr.
+				SET_BIT(frm_tab[p].ctr, 7);
+				if (debug) kprintf("\nfrm_tab[p].ctr = %d", frm_tab[p].ctr);
+				(*pte).pte.pt_acc = 0;  // reset the accessed bit to 0
+			}
+		}
+		// If the current frames ctr is less than minimum then
+		// this is a potential victim.
+		if(frm_tab[p].ctr < min_ctr)
+		{
+			min_ctr = frm_tab[p].ctr;
+			pot_vic_frm = p;
+			(*vpno1) = frm_tab[p].frame_no;
+			(*pid1) = frm_tab[p].fr_pid;
+		}
+	}
+	if(ct > NFRAMES)
+	{
+	// If the code reaches here, this means the circular queue is not properly set or something is smelling.
+	// A good day to die hard.
+	kprintf("\n Infinite loop in get_AGING_policy_victim, fifo_head = %d", fifo_head);
+	return SYSERR;
+	}
+	// Clear all the pte entries of the victim
+	(*is_dirty) = reset_pte(pot_vic_frm);
+	(*frame_number) = pot_vic_frm;
+	remove_from_fifo_queue(pot_vic_frm);
+	insert_into_fifo_queue(pot_vic_frm);
+	return OK;
 }
 
 void print_sc_queue()

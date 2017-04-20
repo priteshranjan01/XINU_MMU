@@ -41,7 +41,15 @@ SYSCALL kill(int pid)
 	send(pptr->pnxtkin, pid);
 	freestk(pptr->pbase, pptr->pstklen);
 	free_bsm(pid);
-	clean_up_inverted_page_table(pid) ;
+	switch(grpolicy())
+	{
+		case AGING:
+					clean_up_inverted_page_table_for_AGING_policy(pid);
+					break;
+		default:
+		case SC:
+			clean_up_inverted_page_table(pid) ;
+	}
 	
 	switch (pptr->pstate) {
 
