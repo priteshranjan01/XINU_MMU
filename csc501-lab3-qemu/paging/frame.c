@@ -26,6 +26,9 @@ SYSCALL init_frm()
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;
 	  frm_tab[i].ctr = 0;
+	  frm_tab[i].shared = TRUE;
+	  frm_tab[i].bs_id = -1;
+	  frm_tab[i].pageth = -1;
   }
   for(i=4; i< 4+NPROC; i++)  // Loop from i = 4 to 53
   {		// Next NPROC frames for PD's of processes.
@@ -40,6 +43,9 @@ SYSCALL init_frm()
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;
 	  frm_tab[i].ctr = 0;
+	  frm_tab[i].shared = FALSE;
+	  frm_tab[i].bs_id = -1;
+	  frm_tab[i].pageth = -1;
   }
   for (i=4+NPROC; i < FRAME0-ENTRIES_PER_PAGE ; i++)  // Loop from 54 to 511
   {	// Frames for page tables.
@@ -54,6 +60,9 @@ SYSCALL init_frm()
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;
 	  frm_tab[i].ctr = 0;
+	  frm_tab[i].shared = FALSE;
+	  frm_tab[i].bs_id = -1;
+	  frm_tab[i].pageth = -1;
   }
   for(; i< FRAME0 + NFRAMES - ENTRIES_PER_PAGE; i++)  //Loop from 512 to 1024
   {		// Available frames for user data.
@@ -68,18 +77,90 @@ SYSCALL init_frm()
 	  frm_tab[i].fr_dirty = FALSE;
 	  frm_tab[i].next = -1;  
 	  frm_tab[i].ctr = 0;
-	}
-// Initialize the bs_fr_tab also .
-	for(i=0; i < ENTRIES_PER_PAGE; i++)
-	{
-		bs_fr_tab[i].valid =  FALSE;
-		bs_fr_tab[i].bs_id = -1;
-		bs_fr_tab[i].pageth = -1;
-		bs_fr_tab[i].fr_no = -1;
+	  frm_tab[i].shared = TRUE;
+	  frm_tab[i].bs_id = -1;
+	  frm_tab[i].pageth = -1;
 	}
   restore(ps);
   return OK;
 }
+
+
+/*-------------------------------------------------------------------------
+ * free_frm - free a frame 
+ *-------------------------------------------------------------------------
+ */
+SYSCALL free_frm(int frame_no, int pid)
+{
+
+  /*
+  Expects a value x ,  1024 <= x < 2048
+  */
+  STATWORD ps;
+  disable(ps);
+  int i, j, ct=0;
+  pt_t * addr = (pt_t*)(frame_no * NBPG);
+
+  if(debug) kprintf("\nfree_frm called with frame_no # %d",frame_no);
+  frame_no -= ENTRIES_PER_PAGE;
+  if(frame_no< 4+NPROC)
+  {		if(debug) kprintf("\n4 Frames for the global page tables and PD can't be freed.");
+		//DO nothing, Keep silent. return OK;
+  }
+  else if (frame_no >= 4+NPROC && frame_no < FRAME0-ENTRIES_PER_PAGE)  // 54 to 511
+  {	// Frames for page tables.
+	  frm_tab[frame_no].fr_status = FRM_UNMAPPED;
+	  for(j=0; j< MAX_PROCESS_PER_BS; j++)
+	 {
+		frm_tab[frame_no].pr_map[j].bs_pid = -1;  
+		frm_tab[frame_no].pr_map[j].bs_vpno = -1;  // These frames don't keep a virtual address page.
+	 }
+	  frm_tab[frame_no].fr_refcnt = -1;
+	  frm_tab[frame_no].fr_type = FR_TBL;
+	  frm_tab[frame_no].fr_dirty = FALSE;
+	  frm_tab[frame_no].ctr = 0;
+	  frm_tab[i].shared = TRUE;
+	  frm_tab[i].bs_id = -1;
+	  frm_tab[i].pageth = -1;
+	  //Invalidate the entries in the PT this frame holds.
+	  for(i=0; i < ENTRIES_PER_PAGE; i++)
+	  {
+		  addr[i].dummy = 0;
+	  }
+  }
+  else if(frame_no >= FRAME0-ENTRIES_PER_PAGE && frame_no < FRAME0 + NFRAMES - ENTRIES_PER_PAGE)  // 512 to 1024
+  {		// Available frames for user data.
+	  
+//	  frm_tab[frame_no].fr_status = FRM_UNMAPPED;
+	ct = 0;
+	for(j=0; j< MAX_PROCESS_PER_BS; j++)
+	 {
+		 if((frm_tab[frame_no].pr_map[j].bs_pid == pid) || 
+				(frm_tab[frame_no].pr_map[j].bs_pid == -1))
+				{
+					frm_tab[frame_no].pr_map[j].bs_pid = -1;  
+					frm_tab[frame_no].pr_map[j].bs_vpno = -1; 
+					ct++;
+				}
+	 }
+	  frm_tab[frame_no].fr_refcnt = -1;
+	  frm_tab[frame_no].fr_type = FR_PAGE;
+	  frm_tab[frame_no].fr_dirty = FALSE;
+	  frm_tab[frame_no].ctr = 0;
+	  frm_tab[i].shared = TRUE;
+	  frm_tab[i].bs_id = -1;
+	  frm_tab[i].pageth = -1;
+    }
+	else
+	{
+		restore(ps);
+		return SYSERR;
+	}
+  restore(ps);
+  return OK;
+}
+
+
 
 /*-------------------------------------------------------------------------
  * get_frm - get a free frame according page replacement policy
@@ -174,7 +255,6 @@ int clean_up_inverted_page_table(int pid)
 SYSCALL get_frm(int* frame_number)
 {
 	/* Will give a value in between 1030 and 2047, both inclusive */
-  //kprintf("To be implemented!\n");
   // First look for an unmapped frame.
   int i, status;
   
@@ -225,7 +305,9 @@ int get_victim_frame(int * frame_number)
 	if(is_dirty)
 	{
 		if(debug) kprintf("\nDirty bit was set Write to backing store. ");
-		status = bsm_lookup(pid, vpno<<12, &store, &pageth);
+		// TODO: THIS WILL HAVE TO CHANGE
+		//status = bsm_lookup(pid, vpno<<12, &store, &pageth);
+		status = get_bs_offset(*frame_number, &store, &pageth);
 		if(debug) kprintf("\npid %d, store %d, pageth %d vpno=0x%x",pid, store, pageth, vpno);
 		if(status == SYSERR)
 		{
@@ -354,6 +436,8 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 			pte = (pt_t*)(((*pde).pde.pd_base << 12) + pt_off);
 			if ((*pte).pte.pt_pres == 0)
 			{kprintf("\nSTAGE 2: We are in deep trouble."); return SYSERR;}
+			// If this frame was written by any process then mark it as dirty. I am not using this information.
+			frm_tab[sc_head].fr_dirty = frm_tab[sc_head].fr_dirty || (*pte).pte.pt_dirty;
 			if((*pte).pte.pt_acc == 1)
 			{  // At least one process has accessed this frame. THis will get another chance.
 				accessed = TRUE;
@@ -397,68 +481,84 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 }
 
 
-/*-------------------------------------------------------------------------
- * free_frm - free a frame 
- *-------------------------------------------------------------------------
- */
-SYSCALL free_frm(int frame_no)
+int insert_bs_fr_tab_info(bsd_t bs_id, int pageth, int fr_no)
 {
-
-//  kprintf("To be implemented!\n");
-  /*
-  Expects a value x ,  1024 <= x < 2048
-  */
-  STATWORD ps;
-  disable(ps);
-  int i, j;
-  pt_t * addr = (pt_t*)(frame_no * NBPG);
-
-  if(debug) kprintf("\nfree_frm called with frame_no # %d",frame_no);
-  frame_no -= ENTRIES_PER_PAGE;
-  if(frame_no< 4+NPROC)
-  {		if(debug) kprintf("\n4 Frames for the global page tables and PD can't be freed.");
-		//DO nothing, Keep silent. return OK;
-  }
-  else if (frame_no >= 4+NPROC && frame_no < FRAME0-ENTRIES_PER_PAGE)  // 54 to 511
-  {	// Frames for page tables.
-	  frm_tab[frame_no].fr_status = FRM_UNMAPPED;
-	  for(j=0; j< MAX_PROCESS_PER_BS; j++)
-	 {
-		frm_tab[frame_no].pr_map[j].bs_pid = -1;  
-		frm_tab[frame_no].pr_map[j].bs_vpno = -1;  // These frames don't keep a virtual address page.
-	 }
-	  frm_tab[frame_no].fr_refcnt = -1;
-	  frm_tab[frame_no].fr_type = FR_TBL;
-	  frm_tab[frame_no].fr_dirty = FALSE;
-	  frm_tab[frame_no].ctr = 0;
-	  //frm_tab[frame_no].next = -1;
-	  //Invalidate the entries in the PT this frame holds.
-	  for(i=0; i < ENTRIES_PER_PAGE; i++)
-	  {
-		  addr[i].dummy = 0;
-	  }
-  }
-  else if(frame_no >= FRAME0-ENTRIES_PER_PAGE && frame_no < FRAME0 + NFRAMES - ENTRIES_PER_PAGE)  // 512 to 1024
-  {		// Available frames for user data.
-	  frm_tab[frame_no].fr_status = FRM_UNMAPPED;
-	  for(j=0; j< MAX_PROCESS_PER_BS; j++)
-	 {
-		frm_tab[frame_no].pr_map[j].bs_pid = -1;  
-		frm_tab[frame_no].pr_map[j].bs_vpno = -1;  // These frames don't keep a virtual address page.
-	 }
-	  frm_tab[frame_no].fr_refcnt = -1;
-	  frm_tab[frame_no].fr_type = FR_PAGE;
-	  frm_tab[frame_no].fr_dirty = FALSE;
-	  frm_tab[frame_no].ctr = 0;
-	  //frm_tab[frame_no].next = -1;  
-	}
-	else
+	int i = 0;
+	if(frm_tab[fr_no].fr_status == FRM_UNMAPPED)
 	{
-		restore(ps);
-		return SYSERR;
+		kprintf("\nWARNING: Putting BS-Frame map fata in UNMAPPED Frame No# %d",fr_no);
 	}
+	frm_tab[fr_no].bs_id = bs_id;
+	frm_tab[fr_no].pageth = pageth;
+	return OK;
 
-  restore(ps);
-  return OK;
 }
 
+int remove_bs_fr_tab_info(bsd_t bs_id, int pageth, int fr_no)
+{
+	frm_tab[fr_no].bs_id = -1;
+	frm_tab[fr_no].pageth = -1;
+	return OK;
+}
+
+int find_bs_fr_tab_info(bsd_t bs_id, int pageth)
+{// Returns the frame number mapped to bs_id and pageth.
+	int i = 512;
+	for(i=512; i < ENTRIES_PER_PAGE; i++)
+	{
+		if(frm_tab[i].bs_id == bs_id && frm_tab[i].pageth == pageth)
+			return i;
+	}
+	return SYSERR;
+}
+
+int get_bs_offset(int frame_no, bsd_t *bs_id, int *pageth)
+{
+	if(frm_tab[frame_no].bs_id != -1 && frm_tab[frame_no].pageth != -1)
+	{
+		*bs_id = frm_tab[frame_no].bs_id ;
+		*pageth = frm_tab[frame_no].pageth;
+		return OK;
+	}
+	return SYSERR;
+}
+
+SYSCALL update_inverted_pt_entry(int pid, int frame_no, int status, int vpno, int type, int shared)
+{
+	/* frame_no should be between 1024 to 2048 */
+	if (frame_no < ENTRIES_PER_PAGE || frame_no >= ENTRIES_PER_PAGE*2)
+		return SYSERR;
+	int i, j;
+	frame_no -= ENTRIES_PER_PAGE;
+	frm_tab[frame_no].fr_status = status;
+	for(i=0; i < MAX_PROCESS_PER_BS ; i++)
+	{
+		if(frm_tab[frame_no].pr_map[i].bs_pid == pid)
+		{	frm_tab[frame_no].pr_map[i].bs_vpno = vpno;
+			break;
+		}
+	}
+	if(i >= MAX_PROCESS_PER_BS)
+	{
+		for(j=0; j< MAX_PROCESS_PER_BS; j++)
+		{
+			if(frm_tab[frame_no].pr_map[j].bs_pid == -1)
+			{	
+				frm_tab[frame_no].pr_map[j].bs_pid = pid;
+				frm_tab[frame_no].pr_map[j].bs_vpno = vpno;
+				break;
+			}
+		}
+		if(j >= MAX_PROCESS_PER_BS)
+		{
+			kprintf("\nFailed to update inverted page table for frame_no # %d, i= %d, j=%d",frame_no, i, j);
+			return SYSERR;
+		}
+	}
+	frm_tab[frame_no].fr_refcnt++;
+	frm_tab[frame_no].fr_type = type;
+	frm_tab[frame_no].fr_dirty = 0;
+	frm_tab[frame_no].shared = shared;
+	if(debug) kprintf("\nUPDATED Inv PT entry # %d, status= %d, vpno= 0x%x, type = %d",frame_no, status, vpno, type);
+	return OK;
+}

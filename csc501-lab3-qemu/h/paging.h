@@ -124,6 +124,9 @@ typedef struct{
   int fr_dirty;				/* If the frame in the memory has been written into */
   int next;					/* For use in SC queue */
   unsigned char ctr:8;				/* For use in AGING PR policy */
+  int shared; 				/* If this frame is shared  */
+  bsd_t bs_id;				
+  int pageth;				/* Bs_id and pageth give the page this frame is mapped to */
 }fr_map_t;
 
 /* To keep track of which page from a BS is stored in which frame */
@@ -140,7 +143,7 @@ extern int 		page_replace_policy;
 extern int 		sc_head;  // Second Change PR policy queue head
 extern bs_map_t bsm_tab[];
 extern fr_map_t frm_tab[];
-extern bs_fr_map bs_fr_tab[];
+//extern bs_fr_map bs_fr_tab[];
 extern unsigned long pferrcode;
 extern unsigned long gpt_base_address[] ;  // Keeps the base address of 4 global page tables.
 // Useful while initializing a process' page directory.
@@ -163,6 +166,11 @@ SYSCALL get_victim_frame(int * frame_number);
 SYSCALL get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno1,int *pid1);
 SYSCALL get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno,int *pid);
 SYSCALL get_frm(int* frame_number);
+SYSCALL insert_bs_fr_tab_info(bsd_t bs_id, int pageth, int fr_no);
+SYSCALL remove_bs_fr_tab_info(bsd_t bs_id, int pageth, int fr_no);
+SYSCALL find_bs_fr_tab_info(bsd_t bs_id, int pageth);
+SYSCALL update_inverted_pt_entry(int pid, int frame_no, int status, int vpno, int type,int shared);
+SYSCALL get_bs_offset(int frame_no, bsd_t *bs_id, int *pageth)
 
 
 /* get_bs.c */
@@ -185,9 +193,6 @@ SYSCALL bsm_map(int pid, int vpno, bsd_t bs_id, int npages);
 SYSCALL bsm_unmap(int pid, int vpno, int flag);
 SYSCALL is_bsm_available(bsd_t bsm_id, int pid, int * bs_shared);
 SYSCALL bsm_lookup(int pid, unsigned long vaddr, int* store, int* pageth);
-SYSCALL insert_into_bs_fr_tab(bsd_t bs_id, int pageth, int fr_no);
-SYSCALL remove_from_bs_fr_tab(bsd_t bs_id, int pageth);
-SYSCALL find_the_shared_frame(bsd_t bs_id, int pageth);
 
 /* pfintr.S  Interrupt hander for INT 14 page fault */
 void pfintr();
@@ -195,7 +200,7 @@ void pfintr();
 /* pfint.c */
 SYSCALL pfint();
 SYSCALL dummy_pfint(unsigned long cr2);
-SYSCALL handle_shared_memory_usecase(int currpid, bsd_t store, int pageth, int * frame_no);
+SYSCALL handle_shared_memory_usecase(bsd_t store, int pageth, int * frame_no);
 
 
 /* policy.c */
