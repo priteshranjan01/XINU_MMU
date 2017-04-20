@@ -133,15 +133,17 @@ SYSCALL free_frm(int frame_no, int pid)
 	  
 //	  frm_tab[frame_no].fr_status = FRM_UNMAPPED;
 	ct = 0;
+//	kprintf("\nABRA KA DABRA");
 	for(j=0; j< MAX_PROCESS_PER_BS; j++)
 	 {
+		 //kprintf("\n %d %d ",frm_tab[frame_no].pr_map[j].bs_pid, pid);
 		 if((frm_tab[frame_no].pr_map[j].bs_pid == pid) || 
 				(frm_tab[frame_no].pr_map[j].bs_pid == -1))
-				{
-					frm_tab[frame_no].pr_map[j].bs_pid = -1;  
-					frm_tab[frame_no].pr_map[j].bs_vpno = -1; 
-					ct++;
-				}
+			{
+				frm_tab[frame_no].pr_map[j].bs_pid = -1;  
+				frm_tab[frame_no].pr_map[j].bs_vpno = -1; 
+				ct++;
+			}
 	 }
 	  frm_tab[frame_no].fr_refcnt = -1;
 	  frm_tab[frame_no].fr_type = FR_PAGE;
@@ -150,7 +152,10 @@ SYSCALL free_frm(int frame_no, int pid)
 	  frm_tab[i].shared = TRUE;
 	  frm_tab[i].bs_id = -1;
 	  frm_tab[i].pageth = -1;
-    }
+	  if(ct >= MAX_PROCESS_PER_BS)
+		  frm_tab[frame_no].fr_status = FRM_UNMAPPED;
+	
+	}
 	else
 	{
 		restore(ps);
@@ -210,7 +215,7 @@ int clean_up_inverted_page_table(int pid)
 	// is dead then frees that frame.
 	int p, i, j, nelements;
 	int queue[NFRAMES];
-	
+	int remove_from_queue = TRUE;
 	if(sc_head == -1)  return OK;
 	p = sc_head;
 
@@ -227,7 +232,7 @@ int clean_up_inverted_page_table(int pid)
 	if(debug) print_sc_queue();
 	int temp_pid = -1;
 	for(i = 0; i<=nelements; i++)
-	{
+	{	remove_from_queue = TRUE;
 		p = queue[i];
 		if (debug) kprintf("\n frame status=%d, type=%d", frm_tab[p].fr_status, frm_tab[p].fr_type);
 		for(j=0; j<MAX_PROCESS_PER_BS; j++)
@@ -235,16 +240,23 @@ int clean_up_inverted_page_table(int pid)
 			temp_pid = frm_tab[p].pr_map[j].bs_pid;
 			if( temp_pid == -1)
 				continue;
-
+			if(temp_pid != pid && proctab[temp_pid].pstate != PRFREE)
+			{
+				// Some other LIVE process is holding this frame. Don't remove this frame
+				// from queue. 
+				remove_from_queue = FALSE;
+			}
+				
 			if (debug) kprintf("\nfr_pid = %d, process state = %d, vpno=0x%x ",
 					temp_pid, proctab[temp_pid].pstate, frm_tab[p].pr_map[j].bs_vpno);
 
 			if(temp_pid == pid || proctab[temp_pid].pstate == PRFREE)
 			{
-				free_frm(p+ENTRIES_PER_PAGE, temp_pid);
-				remove_from_sc_queue(p);	
+				free_frm(p+ENTRIES_PER_PAGE, temp_pid);	
 			}
 		}
+		if(remove_from_queue == TRUE) 
+			remove_from_sc_queue(p);
 	}
 	if(debug) print_sc_queue();
 	return OK;

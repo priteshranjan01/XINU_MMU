@@ -121,6 +121,7 @@ int remove_from_sc_queue(int frame_no)
 		kprintf("\n Invalid Frame # %d Range of value is 512 to %d", frame_no, 512 + NFRAMES);
 		return SYSERR;
 	}
+	if(debug) kprintf("\n remove_from_sc_queue called for frame_no# %d",frame_no);
 	int present = is_present_in_sc_queue(frame_no);
 	if (present == FALSE)
 	{
