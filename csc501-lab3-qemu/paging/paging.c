@@ -35,7 +35,7 @@ SYSCALL initialize_4_global_page_tables(int frame_no)
 }
 
 
-void convert_vaddr_to_paddr(unsigned long pdbr, unsigned long vaddr)
+void convert_vaddr_to_paddr(unsigned long pdbr, unsigned long cr2)
 {
 	/* This procedure is not supposed to be called. 
 	It's just a sanity check if 
@@ -45,27 +45,24 @@ void convert_vaddr_to_paddr(unsigned long pdbr, unsigned long vaddr)
 	of virtual address space maps to the same value in physical address space.
 	*/
 	unsigned long paddr;
-	//kprintf("\n\n\npdbr = 0x%x ",pdbr);
+	unsigned int pd_off, pt_off, pg_off;
+	int frame_no, i, status;
+	pd_off = GET_PD_OFFSET(cr2);
+	pt_off = GET_PT_OFFSET(cr2);
+	pg_off = GET_PG_OFFSET(cr2);
 	pdbr = (pdbr >> 12) << 12;
-	//kprintf("\npdbr = 0x%x ",pdbr);
-	unsigned int pd_offset, pt_offset, pg_offset;
-	pd_offset = GET_PD_OFFSET(vaddr);
-	pt_offset = GET_PT_OFFSET(vaddr);
-	pg_offset = GET_PG_OFFSET(vaddr);
-	//kprintf("\n pd_offset = 0x%x, pt_offset 0x%x, pg_offset 0x%x", pd_offset, pt_offset, pg_offset);
+	pd_t * pde = (pd_t*)(pdbr + pd_off);
 
-	pd_t pde = *((pd_t*)(pdbr + pd_offset));
-	//kprintf("\npde.pd_base = 0x%x",pde.pd_base);
-	if (pde.pde.pd_pres == 0 || pde.pde.pd_write == 0)
-		kprintf("\n Stage 1 error: address = 0x%x , value 0x%x\n",&pde, pde.dummy);
+	if ((*pde).pde.pd_pres == 0)
+		kprintf("\n Stage 1: Page fault");
+	pt_t * pte = (pt_t*)((((*pde).pde.pd_base) << 12) + pt_off) ;
 	
-	pt_t pte = *((pt_t*)((pde.pde.pd_base << 12) + pt_offset ));
-	//kprintf("\npte.pt_base = 0x%x",pte.pt_base<<12);
-	if (pte.pte.pt_pres == 0 || pte.pte.pt_write == 0)
-		kprintf("\n Stage 2 error: address = 0x%x , value 0x%x\n",&pte, pte.dummy);
-	paddr = (pte.pte.pt_base << 12) + pg_offset;
-	//kprintf("\nVaddr = 0x%x  paddr = 0x%x",vaddr, paddr);
-	if(vaddr == paddr)
+	if ((*pte).pte.pt_pres == 0)
+		kprintf("\n Stage 2: Page fault");
+	
+	paddr = (((*pte).pte.pt_base) << 12) + pg_off;
+	kprintf("\nVaddr = 0x%08x  paddr = 0x%08x",cr2, paddr);
+	if(cr2 == paddr)
 		kprintf(".");
 	else
 		kprintf("x");

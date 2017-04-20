@@ -153,6 +153,7 @@ extern unsigned long gpt_base_address[] ;  // Keeps the base address of 4 global
 /* paging.c */
 SYSCALL initialize_4_global_page_tables(int frame_no);
 pd_t* initialize_page_directory(int frame_no);
+void convert_vaddr_to_paddr(unsigned long pdbr, unsigned long cr2);
 
 
 /* frame.c */

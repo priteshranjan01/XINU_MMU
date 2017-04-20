@@ -101,6 +101,10 @@ SYSCALL dummy_pfint(unsigned long cr2)
 
 	if (status != OK)
 		return SYSERR;
+	if(frame_no < 1024 || frame_no > 2048)
+	{
+		kprintf("\warning using wrong frame numbers frame_no %d",frame_no);
+	}
 	if(debug) kprintf("\nUsing frame no# %d", frame_no);
 	pt_t * pte = (pt_t*)((((*pde).pde.pd_base) << 12) + pt_off) ;
 	(*pte).dummy = 0;

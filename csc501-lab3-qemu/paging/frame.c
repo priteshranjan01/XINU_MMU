@@ -481,43 +481,47 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 }
 
 
-int insert_bs_fr_tab_info(bsd_t bs_id, int pageth, int fr_no)
+int insert_bs_fr_tab_info(bsd_t bs_id, int pageth, int frame_no)
 {
 	int i = 0;
-	if(frm_tab[fr_no].fr_status == FRM_UNMAPPED)
+	frame_no -= ENTRIES_PER_PAGE;
+	if(frm_tab[frame_no].fr_status == FRM_UNMAPPED)
 	{
-		kprintf("\nWARNING: Putting BS-Frame map fata in UNMAPPED Frame No# %d",fr_no);
+		kprintf("\nWARNING: Putting BS-Frame map fata in UNMAPPED Frame No# %d",frame_no);
 	}
-	frm_tab[fr_no].bs_id = bs_id;
-	frm_tab[fr_no].pageth = pageth;
+	frm_tab[frame_no].bs_id = bs_id;
+	frm_tab[frame_no].pageth = pageth;
 	return OK;
 
 }
 
-int remove_bs_fr_tab_info(bsd_t bs_id, int pageth, int fr_no)
+int remove_bs_fr_tab_info(bsd_t bs_id, int pageth, int frame_no)
 {
-	frm_tab[fr_no].bs_id = -1;
-	frm_tab[fr_no].pageth = -1;
+	frame_no -= ENTRIES_PER_PAGE;
+	kprintf("\n remove_bs_fr_tab_info bs_id = %d, pageth = %d, frame no= %d",bs_id, pageth, frame_no);
+	frm_tab[frame_no].bs_id = -1;
+	frm_tab[frame_no].pageth = -1;
 	return OK;
 }
 
 int find_bs_fr_tab_info(bsd_t bs_id, int pageth)
 {// Returns the frame number mapped to bs_id and pageth.
-	int i = 512;
-	for(i=512; i < ENTRIES_PER_PAGE; i++)
+	int frame_no = 512;
+	for(frame_no=512; frame_no < ENTRIES_PER_PAGE; frame_no++)
 	{
-		if(frm_tab[i].bs_id == bs_id && frm_tab[i].pageth == pageth)
-			return i;
+		if(frm_tab[frame_no].bs_id == bs_id && frm_tab[frame_no].pageth == pageth)
+			return frame_no+ENTRIES_PER_PAGE;
 	}
 	return SYSERR;
 }
 
 int get_bs_offset(int frame_no, bsd_t *bs_id, int *pageth)
-{
+{	frame_no -= ENTRIES_PER_PAGE;
 	if(frm_tab[frame_no].bs_id != -1 && frm_tab[frame_no].pageth != -1)
 	{
 		*bs_id = frm_tab[frame_no].bs_id ;
 		*pageth = frm_tab[frame_no].pageth;
+	kprintf("\n get_bs_offset bs_id = %d, pageth = %d, frame no= %d",*bs_id, *pageth, frame_no);
 		return OK;
 	}
 	return SYSERR;
