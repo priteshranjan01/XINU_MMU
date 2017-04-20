@@ -88,7 +88,11 @@ SYSCALL dummy_pfint(unsigned long cr2)
 		for(i=0; i<ENTRIES_PER_PAGE; i++)
 			pt_base_address[i].dummy = 0;
 		// Update inverted page table entry.
-		update_inverted_pt_entry(currpid, frame_no, FRM_MAPPED, frame_no, FR_TBL, FALSE);
+		status = update_inverted_pt_entry(currpid, frame_no, FRM_MAPPED, frame_no, FR_TBL, FALSE);
+		if(status != OK)
+		{
+			kprintf("\n Update inverted page table failed, pid=%d, frame_no=%d", currpid, frame_no);
+		}
 	}
 	int store, pageth;
 	status = bsm_lookup(currpid, cr2, &store, &pageth);
@@ -112,7 +116,9 @@ SYSCALL dummy_pfint(unsigned long cr2)
 	(*pte).pte.pt_write = 1;
 	(*pte).pte.pt_base = frame_no;
 	// Update inverted page table entry 
-	update_inverted_pt_entry(currpid, frame_no, FRM_MAPPED, vpno, FR_PAGE, bsm_tab[store].shared);
+	status = update_inverted_pt_entry(currpid, frame_no, FRM_MAPPED, vpno, FR_PAGE, bsm_tab[store].shared);
+	if(status != OK)
+		kprintf("\n Update inverted page table failed, pid=%d, frame_no=%d", currpid, frame_no);
 	if(debug) kprintf("\n pte value = 0x%x", (*pte).dummy);
 	return OK;
 }

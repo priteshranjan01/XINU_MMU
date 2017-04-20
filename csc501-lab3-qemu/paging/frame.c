@@ -318,6 +318,7 @@ int get_victim_frame(int * frame_number)
 			write_bs((char *)((*frame_number)<<12), store, pageth);		
 		}
 	}
+ free_frm(*frame_number, pid);
  if(pr_debug) kprintf("\nSwapped out Frame number # %d\n",*frame_number);
  return OK;
 }
