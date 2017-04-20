@@ -141,6 +141,7 @@ typedef struct
 extern int 		pr_debug;
 extern int 		page_replace_policy;
 extern int 		sc_head;  // Second Change PR policy queue head
+extern int 		fifo_head;  // AGING policy head
 extern bs_map_t bsm_tab[];
 extern fr_map_t frm_tab[];
 //extern bs_fr_map bs_fr_tab[];
@@ -163,8 +164,6 @@ SYSCALL get_frame_for_PT(int *frame_number);
 SYSCALL clean_up_inverted_page_table(int pid);
 SYSCALL free_frm(int frame_no, int pid);
 SYSCALL get_victim_frame(int * frame_number);
-SYSCALL get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno1,int *pid1);
-SYSCALL get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno,int *pid);
 SYSCALL get_frm(int* frame_number);
 SYSCALL insert_bs_fr_tab_info(bsd_t bs_id, int pageth, int fr_no);
 SYSCALL remove_bs_fr_tab_info(bsd_t bs_id, int pageth, int fr_no);
@@ -206,10 +205,22 @@ SYSCALL handle_shared_memory_usecase(bsd_t store, int pageth, int * frame_no);
 /* policy.c */
 SYSCALL srpolicy(int policy);
 SYSCALL grpolicy();
+SYSCALL get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno1,int *pid1);
+SYSCALL get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno,int *pid);
+
 SYSCALL insert_into_sc_queue(int frame_no);
 SYSCALL remove_from_sc_queue(int frame_no);
 SYSCALL test_sc_queue();
 void print_sc_queue();
+
+
+SYSCALL insert_into_fifo_queue(int frame_no);
+SYSCALL is_present_in_fifo_queue(int frame_no);
+SYSCALL remove_from_fifo_queue(int frame_no);
+SYSCALL test_fifo_queue();
+void print_fifo_queue();
+
+
 
 /* xm.c */
 SYSCALL xmmap(int virtpage, bsd_t source, int npages);

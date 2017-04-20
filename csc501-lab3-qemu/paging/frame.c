@@ -339,9 +339,7 @@ int get_victim_frame(int * frame_number)
  return OK;
 }
 
-int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno1,int *pid1)
-{
-}
+
 
 /*
 int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno1,int *pid1)
@@ -406,97 +404,6 @@ int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * 
 }
 
 */
-int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno,int *pid)
-{
-	/*
-	Returns the frame to be swapped out. THe frames owner pid. is_dirty frame and the virtual pages that it maps.
-	--> frame_number tells the next victim.
-	--> is_dirty tells if the page is dirty.
-	This procedure also invalidates the PTE entry.
-	Reduces the reference_count in the inverted page table. 
-		If the reference_count becomes zero then, invalidates the PDE entry.
-	Removes the victim frame from SC queue.
-	*/
-	int ct=0, i=0, temp_pid, accessed;
-	unsigned long pdbr, temp_vpno, pd_off, pt_off;
-	
-	// The ptes variable is used to keep track of which 
-	// PTE values need to be invalidated in case the frame shall need to be removed.
-	pt_t  *pte_s[MAX_PROCESS_PER_BS];
-	int victim_dirty = FALSE;
-	int count=0;
-	pt_t *pte;
-	for(; ct <= NFRAMES; ct++)
-	{	
-		if(sc_head == -1)
-		{
-			kprintf("\nget_SC_policy_victim: SC queue is not set sc_head %d",sc_head);
-			return SYSERR;
-		}
-		accessed = FALSE;
-		count = 0;
-		for(i=0; i<MAX_PROCESS_PER_BS; i++)
-		{
-			temp_pid = frm_tab[sc_head].pr_map[i].bs_pid;
-			if(temp_pid == -1)
-				continue;
-			temp_vpno = frm_tab[sc_head].pr_map[i].bs_vpno;
-			pdbr = ((proctab[temp_pid].pdbr)>>12)<<12;  // Clear the 12 LSB bits.
-			pd_off = ((temp_vpno) <<12) >> 22;  // Double check this. vpno shall have only 20 LSB bits.
-			pt_off = ((temp_vpno) << 22) >> 22; 
-			if(debug) kprintf("\nDouble Check these values: pdbr = 0x%x, vpno = 0x%08x pd_off 0x%x pt_off 0x%x ",pdbr,temp_vpno, pd_off,pt_off);
-			pd_off = pd_off << 2;  // Multiply by 4
-			pt_off = pt_off << 2;
-			pd_t *pde = (pd_t*)(pdbr + pd_off);
-			if ((*pde).pde.pd_pres == 0)
-			{kprintf("\nSTAGE 1: We are in deep trouble."); return SYSERR;}
-			pte = (pt_t*)(((*pde).pde.pd_base << 12) + pt_off);
-			if ((*pte).pte.pt_pres == 0)
-			{kprintf("\nSTAGE 2: We are in deep trouble."); return SYSERR;}
-			// If this frame was written by any process then mark it as dirty. Used when a processes is killed 
-			// and we need to figure out if this should be written into memory
-			frm_tab[sc_head].fr_dirty = frm_tab[sc_head].fr_dirty || (*pte).pte.pt_dirty;
-			if((*pte).pte.pt_acc == 1)
-			{  // At least one process has accessed this frame. THis will get another chance.
-				accessed = TRUE;
-				if(debug) kprintf("\nThe page has been accessed");
-				(*pte).pte.pt_acc = 0;  // Set the accessed bit to 0 and move on.
-			}
-			else
-			{  // This might not get a second chance. Let's store the pte so that we can
-				// invalidate the entry in case this frame is swapped out.
-				pte_s[count] = pte;
-				victim_dirty = (*pte).pte.pt_dirty || victim_dirty;
-				count++;
-				*pid = temp_pid;
-				*vpno = temp_vpno;
-			
-			}
-		}
-		if(accessed == FALSE)
-		{   // Found the victim. Current frame is the victim.
-			*frame_number = sc_head + ENTRIES_PER_PAGE;
-			*is_dirty = victim_dirty;
-			if(debug) kprintf("\n THE BITS SHOULD NOT BE ALL ZERO 0x%08x ",(*pte).dummy);
-
-			for(i=0; i<count; i++)
-				(*pte_s[i]).dummy = 0;
-			if(debug) kprintf("\n CHECK IF THE BITS ARE ALL ZERO 0x%08x ",(*pte).dummy);
-			// TODO: Decrease the ref_cnt from inverted page table. if it becomes zero then invalidate the PDE.
-			// TODO: Invalidate the TLB entry.
-			// Remove the frame from the queue.
-			// See if we need to remove from the queue. Currently, I think we don't.
-			sc_head = frm_tab[sc_head].next;
-			return OK;
-		}
-		sc_head = frm_tab[sc_head].next;
-		
-	}
-	// If the code reaches here, this means the circular queue is not properly set or something is smelling.
-	// A good day to die hard.
-	return SYSERR;
-
-}
 
 
 int insert_bs_fr_tab_info(bsd_t bs_id, int pageth, int frame_no)
