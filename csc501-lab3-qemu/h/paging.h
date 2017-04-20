@@ -153,7 +153,6 @@ extern unsigned long gpt_base_address[] ;  // Keeps the base address of 4 global
 /* paging.c */
 SYSCALL initialize_4_global_page_tables(int frame_no);
 pd_t* initialize_page_directory(int frame_no);
-SYSCALL update_inverted_pt_entry(int frame_no, int status, int vpno, int type);
 
 
 /* frame.c */
@@ -161,7 +160,7 @@ SYSCALL init_frm();
 SYSCALL get_frame_for_PD(int pid, int * frame_number);
 SYSCALL get_frame_for_PT(int *frame_number);
 SYSCALL clean_up_inverted_page_table(int pid);
-SYSCALL free_frm(int frame_no);
+SYSCALL free_frm(int frame_no, int pid);
 SYSCALL get_victim_frame(int * frame_number);
 SYSCALL get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno1,int *pid1);
 SYSCALL get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno,int *pid);
@@ -170,7 +169,7 @@ SYSCALL insert_bs_fr_tab_info(bsd_t bs_id, int pageth, int fr_no);
 SYSCALL remove_bs_fr_tab_info(bsd_t bs_id, int pageth, int fr_no);
 SYSCALL find_bs_fr_tab_info(bsd_t bs_id, int pageth);
 SYSCALL update_inverted_pt_entry(int pid, int frame_no, int status, int vpno, int type,int shared);
-SYSCALL get_bs_offset(int frame_no, bsd_t *bs_id, int *pageth)
+SYSCALL get_bs_offset(int frame_no, bsd_t *bs_id, int *pageth);
 
 
 /* get_bs.c */

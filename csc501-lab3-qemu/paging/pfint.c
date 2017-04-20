@@ -97,7 +97,7 @@ SYSCALL dummy_pfint(unsigned long cr2)
 		kprintf("\nBSM lookup failed in pfint. pid  %d", currpid); return SYSERR;
 	}
 	if(debug) kprintf("\ncurrpid %d, store %d, pageth %d",currpid, store, pageth);
-	status = handle_shared_memory_usecase(currpid, store, pageth, &frame_no);
+	status = handle_shared_memory_usecase(store, pageth, &frame_no);
 
 	if (status != OK)
 		return SYSERR;

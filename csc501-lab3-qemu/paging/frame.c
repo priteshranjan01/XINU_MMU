@@ -241,7 +241,7 @@ int clean_up_inverted_page_table(int pid)
 
 			if(temp_pid == pid || proctab[temp_pid].pstate == PRFREE)
 			{
-				free_frm(p+ENTRIES_PER_PAGE);
+				free_frm(p+ENTRIES_PER_PAGE, temp_pid);
 				remove_from_sc_queue(p);	
 			}
 		}
