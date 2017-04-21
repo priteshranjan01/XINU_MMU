@@ -229,7 +229,7 @@ int clean_up_inverted_page_table(int pid)
 			break;
 	}
 	nelements = i;
-	if(pr_debug) print_queue();
+	if(debug) print_queue();
 	int temp_pid = -1;
 	for(i = 0; i<=nelements; i++)
 	{	remove_from_queue = TRUE;
@@ -260,7 +260,7 @@ int clean_up_inverted_page_table(int pid)
 		if(remove_from_queue == TRUE) 
 			remove_from_sc_queue(p);
 	}
-	if(pr_debug) print_queue();
+	if(debug) print_queue();
 	return OK;
 }
 
@@ -312,7 +312,7 @@ int clean_up_inverted_page_table_for_AGING_policy(int pid)
 		if(remove_from_queue == TRUE)
 			remove_from_fifo_queue(p);
 	}
-	if(pr_debug) print_queue();
+	if(debug) print_queue();
 	return OK;
 }
 
@@ -464,7 +464,7 @@ SYSCALL update_inverted_pt_entry(int pid, int frame_no, int status, int vpno, in
 		}
 		if(j >= MAX_PROCESS_PER_BS)
 		{
-			kprintf("\nFailed to update inverted page table for frame_no # %d, i= %d, j=%d",frame_no, i, j);
+			//kprintf("\nFailed to update inverted page table for frame_no # %d, i= %d, j=%d",frame_no, i, j);
 			return SYSERR;
 		}
 	}
