@@ -219,6 +219,7 @@ SYSCALL is_present_in_fifo_queue(int frame_no);
 SYSCALL remove_from_fifo_queue(int frame_no);
 SYSCALL test_fifo_queue();
 void print_fifo_queue();
+void print_queue();
 
 
 

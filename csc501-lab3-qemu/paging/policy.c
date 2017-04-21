@@ -393,12 +393,13 @@ int get_SC_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpn
 
 
 
-int reset_pte(int frame_no)
+int reset_pte(int frame_no, int *pid, int * vpno)
 {
 	/// If not done for the correct frame then this can be fatal to LIFE.
 	//RETURNS TRUE if the frame was dirty.
 	int i=0, temp_pid, temp_vpno;
 	int is_dirty = FALSE;
+	unsigned long pdbr, pd_off, pt_off;
 	for(i=0; i<MAX_PROCESS_PER_BS; i++)
 	{
 		temp_pid = frm_tab[frame_no].pr_map[i].bs_pid;
@@ -415,6 +416,8 @@ int reset_pte(int frame_no)
 		is_dirty = is_dirty || (*pte).pte.pt_dirty;
 		if(debug) kprintf("\n THE BITS SHOULD NOT BE ALL ZERO 0x%08x ",(*pte).dummy);
 		(*pte).dummy = 0UL;
+		*pid = temp_pid;
+		*vpno = temp_vpno;
 		if(debug) kprintf("\n CHECK IF THE BITS ARE ALL ZERO 0x%08x ",(*pte).dummy);
 	}
 	return is_dirty;
@@ -424,9 +427,9 @@ int reset_pte(int frame_no)
 
 int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * vpno1,int *pid1)
 {
-	int p, ct, temp_pid;
+	int p, ct, temp_pid, i;
 	int pot_vic_frm, vic_frm;
-	unsigned long temp_vpno;
+	unsigned long temp_vpno, pdbr, pd_off, pt_off;
 	unsigned char min_ctr = 0xff;
 	if(fifo_head == -1)
 	{
@@ -451,7 +454,7 @@ int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * 
 			pd_t *pde = (pd_t*)(pdbr + pd_off);
 			if ((*pde).pde.pd_pres == 0)
 			{kprintf("\nSTAGE 1: We are in deep trouble."); return SYSERR;}
-			pte = (pt_t*)(((*pde).pde.pd_base << 12) + pt_off);
+			pt_t * pte = (pt_t*)(((*pde).pde.pd_base << 12) + pt_off);
 			if ((*pte).pte.pt_pres == 0)
 			{kprintf("\nSTAGE 2: We are in deep trouble."); return SYSERR;}
 			// If this frame was written by any process then mark it as dirty.
@@ -470,8 +473,6 @@ int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * 
 		{
 			min_ctr = frm_tab[p].ctr;
 			pot_vic_frm = p;
-			(*vpno1) = frm_tab[p].frame_no;
-			(*pid1) = frm_tab[p].fr_pid;
 		}
 	}
 	if(ct > NFRAMES)
@@ -482,8 +483,8 @@ int get_AGING_policy_victim(int * frame_number, int * is_dirty, unsigned long * 
 	return SYSERR;
 	}
 	// Clear all the pte entries of the victim
-	(*is_dirty) = reset_pte(pot_vic_frm);
-	(*frame_number) = pot_vic_frm;
+	(*is_dirty) = reset_pte(pot_vic_frm, pid1, vpno1);
+	(*frame_number) = pot_vic_frm+ ENTRIES_PER_PAGE;
 	remove_from_fifo_queue(pot_vic_frm);
 	insert_into_fifo_queue(pot_vic_frm);
 	return OK;
@@ -513,12 +514,12 @@ void print_fifo_queue()
 {
 	if(fifo_head == -1)
 	{kprintf("\nEmpty FIFO queue"); return;}
-	kprintf("\n Queue Head= %d \n Frame No\tBS ID\tOffset\tNext", fifo_head+ENTRIES_PER_PAGE);
+	kprintf("\n Queue Head= %d \n Frame No\tBS ID\tOffset\tNext\tcounter", fifo_head+ENTRIES_PER_PAGE);
 	int p = fifo_head;
 	int ct = 0;
 	while(p != -1 && ct < 512)
 	{
-		kprintf("\n %9d\t%5d\t%6d\t%4d", p+ENTRIES_PER_PAGE, frm_tab[p].bs_id, frm_tab[p].pageth, frm_tab[p].next+ENTRIES_PER_PAGE);
+		kprintf("\n %9d\t%5d\t%6d\t%4d\t%6d", p+ENTRIES_PER_PAGE, frm_tab[p].bs_id, frm_tab[p].pageth, frm_tab[p].next+ENTRIES_PER_PAGE, frm_tab[p].ctr);
 		p = frm_tab[p].next;
 		ct++;		
 	}
@@ -573,4 +574,19 @@ int test_sc_queue()
 	print_sc_queue();
 	//print_sc_queue();
 	return OK;
+}
+
+
+void print_queue()
+{
+	switch(grpolicy())
+	{
+		case AGING:
+			print_fifo_queue();
+			break;
+		default:
+		case SC:
+			print_sc_queue();
+			break;
+	}
 }

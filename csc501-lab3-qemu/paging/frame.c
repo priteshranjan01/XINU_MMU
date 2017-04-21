@@ -229,7 +229,7 @@ int clean_up_inverted_page_table(int pid)
 			break;
 	}
 	nelements = i;
-	if(debug) print_sc_queue();
+	if(pr_debug) print_queue();
 	int temp_pid = -1;
 	for(i = 0; i<=nelements; i++)
 	{	remove_from_queue = TRUE;
@@ -260,7 +260,7 @@ int clean_up_inverted_page_table(int pid)
 		if(remove_from_queue == TRUE) 
 			remove_from_sc_queue(p);
 	}
-	if(debug) print_sc_queue();
+	if(pr_debug) print_queue();
 	return OK;
 }
 
@@ -312,7 +312,7 @@ int clean_up_inverted_page_table_for_AGING_policy(int pid)
 		if(remove_from_queue == TRUE)
 			remove_from_fifo_queue(p);
 	}
-	if(debug) print_sc_queue();
+	if(pr_debug) print_queue();
 	return OK;
 }
 
@@ -371,7 +371,7 @@ int get_victim_frame(int * frame_number)
 	if(is_dirty)
 	{
 		if(debug) kprintf("\nDirty bit was set Write to backing store. ");
-		status = get_bs_offset(*frame_number, &store, &pageth);
+		status = get_bs_offset((*frame_number), &store, &pageth);
 		if(debug) kprintf("\npid %d, store %d, pageth %d vpno=0x%x",pid, store, pageth, vpno);
 		if(status == SYSERR)
 		{
@@ -425,6 +425,7 @@ int find_bs_fr_tab_info(bsd_t bs_id, int pageth)
 
 int get_bs_offset(int frame_no, bsd_t *bs_id, int *pageth)
 {	frame_no -= ENTRIES_PER_PAGE;
+	if(debug) kprintf("\nget_bs_offset called with frame_no # %d",frame_no);
 	if(frm_tab[frame_no].bs_id != -1 && frm_tab[frame_no].pageth != -1)
 	{
 		*bs_id = frm_tab[frame_no].bs_id ;
