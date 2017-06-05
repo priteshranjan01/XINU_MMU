@@ -1,2 +1,3 @@
-# pa3
-CSC-501 pa3 assignment
+# XINU OS with support for virtual memory
+Xinu OS: http://www.xinu.cs.purdue.edu/
+
